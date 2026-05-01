@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V-TECH | Digital Luxury Store</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        :root {
+            --bg: #030712;
+            --card: #111827;
+            --accent: #38bdf8;
+            --text: #f8fafc;
+            --admin: #fbbf24;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --glass: rgba(17, 24, 39, 0.7);
+        }
+
+        body { font-family: 'Inter', sans-serif; margin: 0; background: var(--bg); color: var(--text); scroll-behavior: smooth; }
+
+        nav {
+            background: var(--glass); backdrop-filter: blur(15px); padding: 1.2rem 8%;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1); position: sticky; top: 0; z-index: 1000;
+        }
+
+        .logo { font-weight: 800; font-size: 1.5rem; background: linear-gradient(to right, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .btn { cursor: pointer; border-radius: 10px; border: none; padding: 10px 18px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: 0.3s; }
+        .btn-blue { background: linear-gradient(135deg, var(--accent), #1d4ed8); color: white; }
+        .btn-blue:disabled { background: #374151; color: #94a3b8; cursor: not-allowed; }
+        .btn-admin { background: var(--admin); color: #000; display: none; margin-right: 12px; }
+        
+        .btn-whatsapp { background: #25D366; color: white; width: 100%; justify-content: center; margin-top: 15px; }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 30px; }
+
+        .card { background: var(--card); border-radius: 20px; padding: 12px; border: 1px solid rgba(255,255,255,0.05); position: relative; }
+        .card img { width: 100%; height: 250px; object-fit: cover; border-radius: 16px; margin-bottom: 15px; }
+        
+        .stock-tag { font-size: 0.8rem; padding: 4px 8px; border-radius: 6px; background: rgba(255,255,255,0.1); margin-bottom: 10px; display: inline-block; }
+        .out-of-stock { color: var(--danger); font-weight: bold; }
+
+        .delete-btn { position: absolute; top: 20px; right: 20px; background: var(--danger); color: white; border: none; padding: 5px 12px; border-radius: 8px; cursor: pointer; display: none; z-index: 10; }
+
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; backdrop-filter: blur(5px); align-items: center; justify-content: center; }
+        .modal-content { background: #111827; padding: 40px; width: 90%; max-width: 400px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); }
+
+        .invoice-box { background: #030712; border: 1px dashed #374151; padding: 20px; border-radius: 12px; font-family: monospace; font-size: 0.9rem; margin: 15px 0; color: #cbd5e1; }
+        .invoice-line { display: flex; justify-content: space-between; margin-bottom: 5px; }
+
+        input { width: 100%; padding: 14px; margin: 10px 0; background: #030712; border: 1px solid #374151; color: white; border-radius: 12px; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="logo">V-TECH</div>
+    <div style="display: flex; align-items: center;">
+        <button id="btn-admin" class="btn btn-admin" onclick="showModal('modalAdmin')">ADMIN</button>
+        <button class="btn btn-blue" onclick="showModal('modalAuth')" id="btn-user">Acceder</button>
+        <button class="btn btn-blue" onclick="showModal('modalCart')" style="margin-left: 10px;">
+            &nbsp;<span id="count">0</span>
+        </button>
+    </div>
+</nav>
+
+<div class="container">
+    <div id="store-grid" class="grid"></div>
+</div>
+
+<div id="modalInvoice" class="modal">
+    <div class="modal-content">
+        <h2 style="color: var(--success); text-align: center;">¡Gracias por su compra!</h2>
+        <div id="invoice-details" class="invoice-box"></div>
+        <button class="btn btn-whatsapp" onclick="shareWhatsApp()">Compartir en WhatsApp</button>
+        <button onclick="closeModal('modalInvoice')" style="background:none; color:white; width:100%; margin-top:15px; border:none; cursor:pointer;">Cerrar</button>
+    </div>
+</div>
+
+<div id="modalAuth" class="modal">
+    <div class="modal-content">
+        <h2>Bienvenido</h2>
+        <input type="text" id="u-in" placeholder="Usuario">
+        <input type="password" id="p-in" placeholder="Clave">
+        <button class="btn btn-blue" style="width:100%; justify-content: center;" onclick="login()">Entrar</button>
+    </div>
+</div>
+
+<div id="modalAdmin" class="modal">
+    <div class="modal-content">
+        <h2 style="color:var(--admin)">Nuevo Producto</h2>
+        <input type="text" id="n-prod" placeholder="Nombre">
+        <input type="number" id="p-prod" placeholder="Precio ($)">
+        <input type="number" id="s-prod" placeholder="Stock">
+        <input type="file" id="i-prod" accept="image/*">
+        <button class="btn btn-admin" style="display:block; width:100%" onclick="save()">Publicar</button>
+        <button onclick="closeModal('modalAdmin')" style="background:none; color:white; width:100%; margin-top:10px; border:none; cursor:pointer;">Cancelar</button>
+    </div>
+</div>
+
+<div id="modalCart" class="modal">
+    <div class="modal-content">
+        <h2>Tu Carrito</h2>
+        <div id="cart-list"></div>
+        <div style="display:flex; justify-content: space-between; border-top: 1px solid #374151; padding-top: 15px; margin-top:10px">
+            <h3>Total:</h3>
+            <h3 id="cart-total" style="color:var(--accent)">$0</h3>
+        </div>
+        <button class="btn btn-blue" style="width:100%; justify-content: center;" onclick="checkout()">Finalizar Compra</button>
+        <button onclick="closeModal('modalCart')" style="background:none; color:white; width:100%; margin-top:15px; border:none; cursor:pointer;">Volver</button>
+    </div>
+</div>
+
+<script>
+    // --- DATOS DE TU PROYECTO SUPABASE ---
+    const SB_URL = "https://rdyclinraavkirzfigjl.supabase.co"; 
+    const SB_KEY = "sb_publishable_fEGEgkJNYMzVPgzDaEwlsg_W1XiFyt6";
+    
+    // Inicialización correcta del cliente
+    const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+
+    let products = [];
+    let cart = [];
+    let user = null;
+    let whatsappMsg = "";
+
+    function showModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    // Cargar productos al inicio
+    async function fetchProducts() {
+        const { data, error } = await supabaseClient.from('productos').select('*').order('created_at', { ascending: false });
+        if (error) console.error(error);
+        else {
+            products = data;
+            render();
+        }
+    }
+
+    async function save() {
+        const name = document.getElementById('n-prod').value;
+        const price = document.getElementById('p-prod').value;
+        const stock = parseInt(document.getElementById('s-prod').value);
+        const file = document.getElementById('i-prod').files[0];
+
+        if(!name || !price || !file || isNaN(stock)) return alert("Faltan datos");
+
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+            const { error } = await supabaseClient.from('productos').insert([{ name, price, stock, img: reader.result }]);
+            if (error) alert("Error al guardar: " + error.message);
+            else {
+                fetchProducts();
+                closeModal('modalAdmin');
+                // Limpiar campos
+                document.getElementById('n-prod').value = "";
+                document.getElementById('p-prod').value = "";
+                document.getElementById('s-prod').value = "";
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+
+    async function remove(id) {
+        if(confirm("¿Seguro que quieres borrar este producto?")) {
+            const { error } = await supabaseClient.from('productos').delete().eq('id', id);
+            if(error) alert("Error al borrar");
+            else fetchProducts();
+        }
+    }
+
+    async function checkout() {
+        if(cart.length === 0) return;
+        let total = 0;
+        let summary = {};
+
+        // Actualizar stock en la base de datos para cada item
+        for(let item of cart) {
+            const original = products.find(p => p.id === item.id);
+            if(original) {
+                await supabaseClient.from('productos').update({ stock: original.stock - 1 }).eq('id', item.id);
+                if(!summary[item.id]) summary[item.id] = { name: item.name, qty: 0, price: item.price };
+                summary[item.id].qty++;
+                total += parseFloat(item.price);
+            }
+        }
+
+        whatsappMsg = "*NUEVO PEDIDO V-TECH*%0A%0A";
+        let html = "";
+        for(let id in summary) {
+            let s = summary[id];
+            html += `<div class="invoice-line"><span>${s.name} x${s.qty}</span><span>$${s.qty * s.price}</span></div>`;
+            whatsappMsg += `- ${s.name} (x${s.qty}): $${s.qty * s.price}%0A`;
+        }
+        whatsappMsg += "%0A*TOTAL: $" + total + "*";
+
+        document.getElementById('invoice-details').innerHTML = html + `<div style="border-top:1px solid #333; margin-top:10px; padding-top:10px; font-weight:bold; display:flex; justify-content:space-between; color:var(--accent)"><span>TOTAL:</span><span>$${total}</span></div>`;
+        
+        cart = [];
+        updateCart();
+        fetchProducts();
+        closeModal('modalCart');
+        showModal('modalInvoice');
+    }
+
+    function login() {
+        const u = document.getElementById('u-in').value;
+        const p = document.getElementById('p-in').value;
+        if(u === "admin" && p === "1234") {
+            user = "admin";
+            document.getElementById('btn-admin').style.display = 'inline-flex';
+            document.getElementById('btn-user').innerText = "Modo Admin";
+        } else if(u && p) {
+            user = u;
+            document.getElementById('btn-user').innerText = "Hola, " + u;
+        }
+        closeModal('modalAuth');
+        render();
+    }
+
+    function addCart(id) {
+        if(!user) return showModal('modalAuth');
+        const p = products.find(x => x.id === id);
+        if(p.stock <= 0) return alert("Agotado");
+        cart.push({...p, cartId: Date.now() + Math.random()});
+        updateCart();
+    }
+
+    function updateCart() {
+        document.getElementById('count').innerText = cart.length;
+        let t = 0;
+        document.getElementById('cart-list').innerHTML = cart.map(i => {
+            t += parseFloat(i.price);
+            return `<div style="padding:10px; background:#1f2937; margin:5px; border-radius:8px; display:flex; justify-content:space-between"><span>${i.name}</span><span>$${i.price}</span></div>`;
+        }).join('');
+        document.getElementById('cart-total').innerText = `$${t}`;
+    }
+
+    function render() {
+        const g = document.getElementById('store-grid');
+        g.innerHTML = products.map(p => `
+            <div class="card">
+                ${user === 'admin' ? `<button class="delete-btn" style="display:block" onclick="remove(${p.id})">Borrar</button>` : ''}
+                <img src="${p.img}">
+                <div class="stock-tag ${p.stock <= 0 ? 'out-of-stock' : ''}">${p.stock > 0 ? 'Stock: '+p.stock : 'AGOTADO'}</div>
+                <h3 style="margin:5px 0">${p.name}</h3>
+                <div style="color:var(--accent); font-weight:bold; margin-bottom:10px">$${p.price}</div>
+                <button class="btn btn-blue" style="width:100%; justify-content:center" onclick="addCart(${p.id})" ${p.stock <= 0 ? 'disabled' : ''}>${p.stock <= 0 ? 'Agotado' : 'Añadir'}</button>
+            </div>
+        `).join('');
+    }
+
+    function shareWhatsApp() { window.open("https://wa.me/?text=" + whatsappMsg, '_blank'); }
+
+    // Iniciar carga de datos
+    fetchProducts();
+</script>
+</body>
+</html>
