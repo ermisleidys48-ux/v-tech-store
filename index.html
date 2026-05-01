@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>V-TECH | Digital Luxury Store</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -47,6 +48,7 @@
         .out-of-stock { color: var(--danger); font-weight: bold; }
 
         .delete-btn { position: absolute; top: 20px; right: 20px; background: var(--danger); color: white; border: none; padding: 5px 12px; border-radius: 8px; cursor: pointer; display: none; z-index: 10; }
+        .remove-item { color: var(--danger); cursor: pointer; font-size: 1.2rem; margin-left: 10px; }
 
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; backdrop-filter: blur(5px); align-items: center; justify-content: center; }
         .modal-content { background: #111827; padding: 40px; width: 90%; max-width: 400px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); }
@@ -65,7 +67,7 @@
         <button id="btn-admin" class="btn btn-admin" onclick="showModal('modalAdmin')">ADMIN</button>
         <button class="btn btn-blue" onclick="showModal('modalAuth')" id="btn-user">Acceder</button>
         <button class="btn btn-blue" onclick="showModal('modalCart')" style="margin-left: 10px;">
-            &nbsp;<span id="count">0</span>
+            <i class="fas fa-shopping-cart"></i>&nbsp;<span id="count">0</span>
         </button>
     </div>
 </nav>
@@ -76,7 +78,7 @@
 
 <div id="modalInvoice" class="modal">
     <div class="modal-content">
-        <h2 style="color: var(--success); text-align: center;">¡Gracias por su compra!</h2>
+        <h2 style="color: var(--success); text-align: center;">&iexcl;Gracias por su compra!</h2>
         <div id="invoice-details" class="invoice-box"></div>
         <button class="btn btn-whatsapp" onclick="shareWhatsApp()">Compartir en WhatsApp</button>
         <button onclick="closeModal('modalInvoice')" style="background:none; color:white; width:100%; margin-top:15px; border:none; cursor:pointer;">Cerrar</button>
@@ -118,11 +120,8 @@
 </div>
 
 <script>
-    // --- DATOS DE TU PROYECTO SUPABASE ---
     const SB_URL = "https://rdyclinraavkirzfigjl.supabase.co"; 
     const SB_KEY = "sb_publishable_fEGEgkJNYMzVPgzDaEwlsg_W1XiFyt6";
-    
-    // Inicialización correcta del cliente
     const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
 
     let products = [];
@@ -133,7 +132,6 @@
     function showModal(id) { document.getElementById(id).style.display = 'flex'; }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
-    // Cargar productos al inicio
     async function fetchProducts() {
         const { data, error } = await supabaseClient.from('productos').select('*').order('created_at', { ascending: false });
         if (error) console.error(error);
@@ -158,7 +156,6 @@
             else {
                 fetchProducts();
                 closeModal('modalAdmin');
-                // Limpiar campos
                 document.getElementById('n-prod').value = "";
                 document.getElementById('p-prod').value = "";
                 document.getElementById('s-prod').value = "";
@@ -168,7 +165,7 @@
     }
 
     async function remove(id) {
-        if(confirm("¿Seguro que quieres borrar este producto?")) {
+        if(confirm("&iquest;Seguro que quieres borrar este producto?")) {
             const { error } = await supabaseClient.from('productos').delete().eq('id', id);
             if(error) alert("Error al borrar");
             else fetchProducts();
@@ -180,7 +177,6 @@
         let total = 0;
         let summary = {};
 
-        // Actualizar stock en la base de datos para cada item
         for(let item of cart) {
             const original = products.find(p => p.id === item.id);
             if(original) {
@@ -191,7 +187,8 @@
             }
         }
 
-        whatsappMsg = "*NUEVO PEDIDO V-TECH*%0A%0A";
+        // WhatsApp Personalizado con el nombre de usuario
+        whatsappMsg = "*PEDIDO DE: " + (user || "Cliente").toUpperCase() + "*%0A%0A";
         let html = "";
         for(let id in summary) {
             let s = summary[id];
@@ -232,12 +229,21 @@
         updateCart();
     }
 
+    // Nueva funciÃ³n para quitar productos del carrito
+    function removeFromCart(cartId) {
+        cart = cart.filter(item => item.cartId !== cartId);
+        updateCart();
+    }
+
     function updateCart() {
         document.getElementById('count').innerText = cart.length;
         let t = 0;
         document.getElementById('cart-list').innerHTML = cart.map(i => {
             t += parseFloat(i.price);
-            return `<div style="padding:10px; background:#1f2937; margin:5px; border-radius:8px; display:flex; justify-content:space-between"><span>${i.name}</span><span>$${i.price}</span></div>`;
+            return `<div style="padding:10px; background:#1f2937; margin:5px; border-radius:8px; display:flex; justify-content:space-between; align-items:center">
+                <span>${i.name} ($${i.price})</span>
+                <i class="fas fa-trash remove-item" onclick="removeFromCart(${i.cartId})"></i>
+            </div>`;
         }).join('');
         document.getElementById('cart-total').innerText = `$${t}`;
     }
@@ -251,14 +257,13 @@
                 <div class="stock-tag ${p.stock <= 0 ? 'out-of-stock' : ''}">${p.stock > 0 ? 'Stock: '+p.stock : 'AGOTADO'}</div>
                 <h3 style="margin:5px 0">${p.name}</h3>
                 <div style="color:var(--accent); font-weight:bold; margin-bottom:10px">$${p.price}</div>
-                <button class="btn btn-blue" style="width:100%; justify-content:center" onclick="addCart(${p.id})" ${p.stock <= 0 ? 'disabled' : ''}>${p.stock <= 0 ? 'Agotado' : 'Añadir'}</button>
+                <button class="btn btn-blue" style="width:100%; justify-content:center" onclick="addCart(${p.id})" ${p.stock <= 0 ? 'disabled' : ''}>${p.stock <= 0 ? 'Agotado' : 'A&ntilde;adir'}</button>
             </div>
         `).join('');
     }
 
     function shareWhatsApp() { window.open("https://wa.me/?text=" + whatsappMsg, '_blank'); }
 
-    // Iniciar carga de datos
     fetchProducts();
 </script>
 </body>
