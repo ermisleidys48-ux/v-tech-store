@@ -179,14 +179,12 @@
         let total = 0;
         let summary = {};
 
-        // Agrupar items del carrito para descontar stock correctamente
         cart.forEach(item => {
             if(!summary[item.id]) summary[item.id] = { name: item.name, qty: 0, price: item.price };
             summary[item.id].qty++;
             total += parseFloat(item.price);
         });
 
-        // Actualizar stock en Supabase restando la cantidad total comprada de cada producto
         for(let id in summary) {
             const original = products.find(p => p.id == id);
             if(original) {
@@ -229,6 +227,7 @@
             document.getElementById('btn-user').innerText = "Modo Admin";
         } else if(u && p) {
             user = u;
+            document.getElementById('btn-admin').style.display = 'none';
             document.getElementById('btn-user').innerText = "Hola, " + u;
         }
         closeModal('modalAuth');
@@ -239,7 +238,6 @@
         if(!user) return showModal('modalAuth');
         const p = products.find(x => x.id === id);
         
-        // Verificar si hay stock disponible considerando lo que ya está en el carrito
         const inCart = cart.filter(item => item.id === id).length;
         if(p.stock <= inCart) return alert("No hay más stock disponible");
 
