@@ -62,6 +62,15 @@
         #loader { display: none; flex-direction: column; align-items: center; justify-content: center; width: 100%; padding: 50px 0; }
         .spinner { width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.1); border-top: 5px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Estilos del Toast */
+        #toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px);
+            background: var(--accent); color: #000; padding: 12px 25px; border-radius: 50px;
+            font-weight: 700; box-shadow: 0 10px 25px rgba(56, 189, 248, 0.3);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 3000;
+        }
+        #toast.show { transform: translateX(-50%) translateY(0); }
     </style>
 </head>
 <body>
@@ -84,6 +93,8 @@
     </div>
     <div id="store-grid" class="grid"></div>
 </div>
+
+<div id="toast">¡Producto añadido!</div>
 
 <div id="modalInvoice" class="modal">
     <div class="modal-content">
@@ -144,13 +155,11 @@
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
     async function fetchProducts() {
-        // Mostrar cargador y limpiar grid
         document.getElementById('loader').style.display = 'flex';
         document.getElementById('store-grid').innerHTML = "";
 
         const { data, error } = await supabaseClient.from('productos').select('*').order('created_at', { ascending: false });
         
-        // Ocultar cargador
         document.getElementById('loader').style.display = 'none';
 
         if (error) console.error(error);
@@ -251,6 +260,12 @@
         render();
     }
 
+    function showToast() {
+        const toast = document.getElementById('toast');
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
     function addCart(id) {
         if(!user) return showModal('modalAuth');
         const p = products.find(x => x.id === id);
@@ -260,6 +275,7 @@
 
         cart.push({...p, cartId: Date.now() + Math.random()});
         updateCart();
+        showToast();
     }
 
     function removeFromCart(cartId) {
