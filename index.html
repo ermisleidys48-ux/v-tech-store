@@ -132,6 +132,12 @@
                 <input type="number" id="shipping-cost-input" placeholder="Ej: 5" style="margin:0">
                 <button class="btn btn-blue" onclick="updateShippingCost()">Guardar</button>
             </div>
+
+            <p style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 5px; margin-top: 15px;">WhatsApp del Negocio (con código de país):</p>
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="store-phone-input" placeholder="Ej: 5491122334455" style="margin:0">
+                <button class="btn btn-blue" onclick="updateStorePhone()">Guardar</button>
+            </div>
         </div>
 
         <h3 style="color:var(--admin); margin-top:0">Nuevo Producto</h3>
@@ -186,6 +192,7 @@
     let address = "";
     let whatsappMsg = "";
     let shippingCost = 0;
+    let storePhone = "";
 
     function showModal(id) { document.getElementById(id).style.display = 'flex'; }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
@@ -226,6 +233,23 @@
         }
     }
 
+    async function updateStorePhone() {
+        const phone = document.getElementById('store-phone-input').value.replace(/\+/g, '').trim();
+        if(!phone) return alert("Ingresa un número válido");
+
+        const { error } = await supabaseClient
+            .from('configuracion')
+            .update({ value: phone })
+            .eq('key', 'store_phone');
+
+        if (error) {
+            alert("Error al actualizar teléfono: " + error.message);
+        } else {
+            storePhone = phone;
+            alert("¡WhatsApp de destino actualizado!");
+        }
+    }
+
     window.onload = async () => {
         const { data: config, error } = await supabaseClient.from('configuracion').select('*');
         
@@ -239,6 +263,10 @@
                 if (item.key === 'shipping_cost') {
                     shippingCost = parseFloat(item.value);
                     document.getElementById('shipping-cost-input').value = shippingCost;
+                }
+                if (item.key === 'store_phone') {
+                    storePhone = item.value;
+                    document.getElementById('store-phone-input').value = item.value;
                 }
             });
         }
@@ -453,7 +481,13 @@
         `).join('');
     }
 
-    function shareWhatsApp() { window.open("https://wa.me/?text=" + whatsappMsg, '_blank'); }
+    function shareWhatsApp() { 
+        if(!storePhone) {
+            alert("El administrador no ha configurado un número de WhatsApp destino.");
+            return;
+        }
+        window.open("https://wa.me/" + storePhone + "?text=" + whatsappMsg, '_blank'); 
+    }
 
 </script>
 </body>
