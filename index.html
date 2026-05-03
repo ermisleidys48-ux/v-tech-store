@@ -79,7 +79,7 @@
 <body>
 
 <nav>
-    <div class="logo">V-TECH</div>
+    <div class="logo" id="store-logo">V-TECH</div>
     <div style="display: flex; align-items: center;">
         <button id="btn-admin" class="btn btn-admin" onclick="showModal('modalAdmin')">ADMIN</button>
         <button class="btn btn-blue" onclick="showModal('modalAuth')" id="btn-user">Acceder</button>
@@ -120,7 +120,17 @@
 
 <div id="modalAdmin" class="modal">
     <div class="modal-content">
-        <h2 style="color:var(--admin)">Nuevo Producto</h2>
+        <h2 style="color:var(--admin)">Gestión de Tienda</h2>
+        
+        <div style="margin-bottom: 20px; border-bottom: 1px solid #374151; padding-bottom: 20px;">
+            <p style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 5px;">Nombre de la Tienda:</p>
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="store-name-input" placeholder="Nuevo nombre..." style="margin:0">
+                <button class="btn btn-blue" onclick="updateStoreName()">Actualizar</button>
+            </div>
+        </div>
+
+        <h3 style="color:var(--admin); margin-top:0">Nuevo Producto</h3>
         <input type="text" id="n-prod" placeholder="Nombre">
         <input type="number" id="p-prod" placeholder="Precio ($)">
         <input type="number" id="s-prod" placeholder="Stock">
@@ -156,6 +166,26 @@
 
     function showModal(id) { document.getElementById(id).style.display = 'flex'; }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    // Función para actualizar nombre de tienda
+    function updateStoreName() {
+        const newName = document.getElementById('store-name-input').value;
+        if(newName) {
+            document.getElementById('store-logo').innerText = newName;
+            localStorage.setItem('vtech_store_name', newName);
+            alert("Nombre actualizado");
+        }
+    }
+
+    // Cargar nombre guardado al iniciar
+    window.onload = () => {
+        const savedName = localStorage.getItem('vtech_store_name');
+        if(savedName) {
+            document.getElementById('store-logo').innerText = savedName;
+            document.getElementById('store-name-input').value = savedName;
+        }
+        fetchProducts();
+    };
 
     async function fetchProducts() {
         document.getElementById('loader').style.display = 'flex';
@@ -343,7 +373,6 @@
 
     function shareWhatsApp() { window.open("https://wa.me/?text=" + whatsappMsg, '_blank'); }
 
-    fetchProducts();
 </script>
 </body>
 </html>
