@@ -54,19 +54,17 @@
         .qty-btn:hover { background: var(--accent); color: black; }
 
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; backdrop-filter: blur(5px); align-items: center; justify-content: center; }
-        .modal-content { background: #111827; padding: 40px; width: 90%; max-width: 400px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); }
+        .modal-content { background: #111827; padding: 40px; width: 90%; max-width: 400px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); overflow-y: auto; max-height: 90vh; }
 
         .invoice-box { background: #030712; border: 1px dashed #374151; padding: 20px; border-radius: 12px; font-family: monospace; font-size: 0.9rem; margin: 15px 0; color: #cbd5e1; }
         .invoice-line { display: flex; justify-content: space-between; margin-bottom: 5px; }
 
-        input { width: 100%; padding: 14px; margin: 10px 0; background: #030712; border: 1px solid #374151; color: white; border-radius: 12px; box-sizing: border-box; }
+        input, select { width: 100%; padding: 14px; margin: 10px 0; background: #030712; border: 1px solid #374151; color: white; border-radius: 12px; box-sizing: border-box; }
 
-        /* Estilos del Cargador */
         #loader { display: none; flex-direction: column; align-items: center; justify-content: center; width: 100%; padding: 50px 0; }
         .spinner { width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.1); border-top: 5px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Estilos del Toast */
         #toast {
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px);
             background: var(--accent); color: #000; padding: 12px 25px; border-radius: 50px;
@@ -113,7 +111,7 @@
         <h2>Bienvenido</h2>
         <input type="text" id="u-in" placeholder="Usuario">
         <input type="password" id="p-in" placeholder="Clave">
-        <input type="text" id="a-in" placeholder="Direcci&oacute;n (Opcional)">
+        <input type="text" id="a-in" placeholder="Direcci&oacute;n (Obligatoria para envíos)">
         <button class="btn btn-blue" style="width:100%; justify-content: center;" onclick="login()">Entrar</button>
     </div>
 </div>
@@ -127,6 +125,12 @@
             <div style="display:flex; gap:5px;">
                 <input type="text" id="store-name-input" placeholder="Nuevo nombre..." style="margin:0">
                 <button class="btn btn-blue" onclick="updateStoreName()">Actualizar</button>
+            </div>
+            
+            <p style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 5px; margin-top: 15px;">Costo de Envío ($):</p>
+            <div style="display:flex; gap:5px;">
+                <input type="number" id="shipping-cost-input" placeholder="Ej: 5" style="margin:0">
+                <button class="btn btn-blue" onclick="updateShippingCost()">Guardar</button>
             </div>
         </div>
 
@@ -144,10 +148,28 @@
     <div class="modal-content">
         <h2>Tu Carrito</h2>
         <div id="cart-list"></div>
-        <div style="display:flex; justify-content: space-between; border-top: 1px solid #374151; padding-top: 15px; margin-top:10px">
+        
+        <div style="margin-top: 15px; border-top: 1px solid #374151; padding-top: 15px;">
+            <label style="font-size: 0.9rem; color: #94a3b8;">Método de entrega:</label>
+            <select id="shipping-method" onchange="updateCart()">
+                <option value="pickup">Retiro en tienda (Gratis)</option>
+                <option value="delivery">Envío a Domicilio</option>
+            </select>
+        </div>
+
+        <div style="display:flex; justify-content: space-between; margin-top:10px">
+            <h3>Subtotal:</h3>
+            <h3 id="cart-subtotal">$0</h3>
+        </div>
+        <div id="shipping-line" style="display:none; justify-content: space-between; margin-top:-10px">
+            <p>Envío:</p>
+            <p id="shipping-price-display">$0</p>
+        </div>
+        <div style="display:flex; justify-content: space-between; border-top: 1px solid #374151; padding-top: 10px; margin-top:5px">
             <h3>Total:</h3>
             <h3 id="cart-total" style="color:var(--accent)">$0</h3>
         </div>
+        
         <button class="btn btn-blue" style="width:100%; justify-content: center;" onclick="checkout()">Finalizar Compra</button>
         <button onclick="closeModal('modalCart')" style="background:none; color:white; width:100%; margin-top:15px; border:none; cursor:pointer;">Volver</button>
     </div>
@@ -163,11 +185,11 @@
     let user = null;
     let address = "";
     let whatsappMsg = "";
+    let shippingCost = 0;
 
     function showModal(id) { document.getElementById(id).style.display = 'flex'; }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
-    // Función para actualizar nombre de tienda
     function updateStoreName() {
         const newName = document.getElementById('store-name-input').value;
         if(newName) {
@@ -177,13 +199,29 @@
         }
     }
 
-    // Cargar nombre guardado al iniciar
+    function updateShippingCost() {
+        const cost = document.getElementById('shipping-cost-input').value;
+        if(cost !== "") {
+            shippingCost = parseFloat(cost);
+            localStorage.setItem('vtech_shipping_cost', shippingCost);
+            alert("Costo de envío actualizado");
+            updateCart();
+        }
+    }
+
     window.onload = () => {
         const savedName = localStorage.getItem('vtech_store_name');
         if(savedName) {
             document.getElementById('store-logo').innerText = savedName;
             document.getElementById('store-name-input').value = savedName;
         }
+        
+        const savedCost = localStorage.getItem('vtech_shipping_cost');
+        if(savedCost !== null) {
+            shippingCost = parseFloat(savedCost);
+            document.getElementById('shipping-cost-input').value = shippingCost;
+        }
+        
         fetchProducts();
     };
 
@@ -235,14 +273,24 @@
 
     async function checkout() {
         if(cart.length === 0) return;
-        let total = 0;
+        
+        const isDelivery = document.getElementById('shipping-method').value === "delivery";
+        if(isDelivery && (!address || address.trim() === "")) {
+            alert("Por favor, ingrese su dirección en el perfil (Acceder) para solicitar envío a domicilio.");
+            showModal('modalAuth');
+            return;
+        }
+
+        let subtotal = 0;
         let summary = {};
 
         cart.forEach(item => {
             if(!summary[item.id]) summary[item.id] = { name: item.name, qty: 0, price: item.price };
             summary[item.id].qty++;
-            total += parseFloat(item.price);
+            subtotal += parseFloat(item.price);
         });
+
+        const total = isDelivery ? subtotal + shippingCost : subtotal;
 
         for(let id in summary) {
             const original = products.find(p => p.id == id);
@@ -253,6 +301,7 @@
         }
 
         whatsappMsg = "*PEDIDO DE: " + (user || "Cliente").toUpperCase() + "*%0A";
+        whatsappMsg += "*ENTREGA:* " + (isDelivery ? "Envío a Domicilio" : "Retiro en Tienda") + "%0A";
         if(address) whatsappMsg += "*DIRECCIÓN:* " + address + "%0A";
         whatsappMsg += "%0A";
 
@@ -262,6 +311,12 @@
             html += `<div class="invoice-line"><span>${s.name} x${s.qty}</span><span>$${s.qty * s.price}</span></div>`;
             whatsappMsg += `- ${s.name} (x${s.qty}): $${s.qty * s.price}%0A`;
         }
+        
+        if(isDelivery) {
+            html += `<div class="invoice-line"><span>Costo de Envío</span><span>$${shippingCost}</span></div>`;
+            whatsappMsg += `- Envío: $${shippingCost}%0A`;
+        }
+
         whatsappMsg += "%0A*TOTAL: $" + total + "*";
 
         document.getElementById('invoice-details').innerHTML = html + `<div style="border-top:1px solid #333; margin-top:10px; padding-top:10px; font-weight:bold; display:flex; justify-content:space-between; color:var(--accent)"><span>TOTAL:</span><span>$${total}</span></div>`;
@@ -337,9 +392,9 @@
             return acc;
         }, {});
 
-        let t = 0;
+        let subtotal = 0;
         document.getElementById('cart-list').innerHTML = Object.values(grouped).map(i => {
-            t += (parseFloat(i.price) * i.qty);
+            subtotal += (parseFloat(i.price) * i.qty);
             return `<div style="padding:10px; background:#1f2937; margin:5px; border-radius:8px; display:flex; justify-content:space-between; align-items:center">
                 <div style="display:flex; flex-direction:column">
                     <span>${i.name}</span>
@@ -354,7 +409,13 @@
             </div>`;
         }).join('');
         
-        document.getElementById('cart-total').innerText = `$${t}`;
+        const isDelivery = document.getElementById('shipping-method').value === "delivery";
+        const finalShipping = isDelivery ? shippingCost : 0;
+        
+        document.getElementById('shipping-line').style.display = isDelivery ? 'flex' : 'none';
+        document.getElementById('shipping-price-display').innerText = `$${finalShipping}`;
+        document.getElementById('cart-subtotal').innerText = `$${subtotal}`;
+        document.getElementById('cart-total').innerText = `$${subtotal + finalShipping}`;
     }
 
     function render() {
