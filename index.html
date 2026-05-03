@@ -190,36 +190,55 @@
     function showModal(id) { document.getElementById(id).style.display = 'flex'; }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
-    function updateStoreName() {
+    async function updateStoreName() {
         const newName = document.getElementById('store-name-input').value;
-        if(newName) {
+        if(!newName) return;
+
+        const { error } = await supabaseClient
+            .from('configuracion')
+            .update({ value: newName })
+            .eq('key', 'store_name');
+
+        if (error) {
+            alert("Error al sincronizar: " + error.message);
+        } else {
             document.getElementById('store-logo').innerText = newName;
-            localStorage.setItem('vtech_store_name', newName);
-            alert("Nombre actualizado");
+            alert("¡Nombre de tienda actualizado globalmente!");
         }
     }
 
-    function updateShippingCost() {
+    async function updateShippingCost() {
         const cost = document.getElementById('shipping-cost-input').value;
-        if(cost !== "") {
+        if(cost === "") return;
+
+        const { error } = await supabaseClient
+            .from('configuracion')
+            .update({ value: cost })
+            .eq('key', 'shipping_cost');
+
+        if (error) {
+            alert("Error al actualizar envío: " + error.message);
+        } else {
             shippingCost = parseFloat(cost);
-            localStorage.setItem('vtech_shipping_cost', shippingCost);
-            alert("Costo de envío actualizado");
+            alert("Costo de envío actualizado globalmente");
             updateCart();
         }
     }
 
-    window.onload = () => {
-        const savedName = localStorage.getItem('vtech_store_name');
-        if(savedName) {
-            document.getElementById('store-logo').innerText = savedName;
-            document.getElementById('store-name-input').value = savedName;
-        }
+    window.onload = async () => {
+        const { data: config, error } = await supabaseClient.from('configuracion').select('*');
         
-        const savedCost = localStorage.getItem('vtech_shipping_cost');
-        if(savedCost !== null) {
-            shippingCost = parseFloat(savedCost);
-            document.getElementById('shipping-cost-input').value = shippingCost;
+        if (!error && config) {
+            config.forEach(item => {
+                if (item.key === 'store_name') {
+                    document.getElementById('store-logo').innerText = item.value;
+                    document.getElementById('store-name-input').value = item.value;
+                }
+                if (item.key === 'shipping_cost') {
+                    shippingCost = parseFloat(item.value);
+                    document.getElementById('shipping-cost-input').value = shippingCost;
+                }
+            });
         }
         
         fetchProducts();
