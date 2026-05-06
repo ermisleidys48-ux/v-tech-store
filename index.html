@@ -141,15 +141,15 @@
         </div>
 
         <div style="margin-bottom: 20px; border-bottom: 1px solid #374151; padding-bottom: 20px;">
-            <h3 style="color:var(--admin); margin-top:0"><i class="fas fa-chart-line"></i> Contabilidad</h3>
+            <h3 style="color:var(--admin); margin-top:0"><i class="fas fa-chart-line"></i> Estado de Resultados</h3>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
                 <div style="background: #030712; padding: 10px; border-radius: 10px; border: 1px solid #374151; text-align: center;">
-                    <small style="color: #94a3b8;">Ingresos</small>
-                    <h3 id="stats-total" style="margin: 5px 0; color: var(--success);">$0</h3>
+                    <small style="color: #94a3b8;">Caja (Ingresos)</small>
+                    <h3 id="stats-total" style="margin: 5px 0; color: white;">$0</h3>
                 </div>
                 <div style="background: #030712; padding: 10px; border-radius: 10px; border: 1px solid #374151; text-align: center;">
-                    <small style="color: #94a3b8;">Ventas</small>
-                    <h3 id="stats-cantidad" style="margin: 5px 0; color: var(--accent);">0</h3>
+                    <small style="color: #94a3b8;">Ganancia Neta</small>
+                    <h3 id="stats-ganancia" style="margin: 5px 0; color: var(--success);">$0</h3>
                 </div>
             </div>
             <button class="btn btn-blue" style="width:100%; margin-bottom:10px; justify-content:center" onclick="cargarContabilidad()">Actualizar Reporte</button>
@@ -163,8 +163,8 @@
 
         <h3 style="color:var(--admin); margin-top:0">Nuevo Producto</h3>
         <input type="text" id="n-prod" placeholder="Nombre">
-        <input type="number" id="p-prod" placeholder="Precio ($)">
-        <input type="number" id="s-prod" placeholder="Stock">
+        <input type="number" id="p-prod" placeholder="Precio de Venta ($)">
+        <input type="number" id="c-prod" placeholder="Costo de Compra ($)"> <input type="number" id="s-prod" placeholder="Stock">
         <input type="file" id="i-prod" accept="image/*">
         <button class="btn btn-admin" style="display:block; width:100%" onclick="save()">Publicar</button>
         <button onclick="closeModal('modalAdmin')" style="background:none; color:white; width:100%; margin-top:10px; border:none; cursor:pointer;">Cancelar</button>
@@ -313,20 +313,28 @@
     async function save() {
         const name = document.getElementById('n-prod').value;
         const price = document.getElementById('p-prod').value;
+        const cost = document.getElementById('c-prod').value; // CAMBIO: CAPTURA COSTO
         const stock = parseInt(document.getElementById('s-prod').value);
         const file = document.getElementById('i-prod').files[0];
 
-        if(!name || !price || !file || isNaN(stock)) return alert("Faltan datos");
+        if(!name || !price || !cost || !file || isNaN(stock)) return alert("Faltan datos");
 
         const reader = new FileReader();
         reader.onloadend = async () => {
-            const { error } = await supabaseClient.from('productos').insert([{ name, price, stock, img: reader.result }]);
+            const { error } = await supabaseClient.from('productos').insert([{ 
+                name, 
+                price, 
+                costo_compra: cost, // CAMBIO: GUARDA COSTO
+                stock, 
+                img: reader.result 
+            }]);
             if (error) alert("Error al guardar: " + error.message);
             else {
                 fetchProducts();
                 closeModal('modalAdmin');
                 document.getElementById('n-prod').value = "";
                 document.getElementById('p-prod').value = "";
+                document.getElementById('c-prod').value = "";
                 document.getElementById('s-prod').value = "";
             }
         };
@@ -352,15 +360,18 @@
         }
 
         let subtotal = 0;
+        let costoTotalCompra = 0; // CAMBIO: PARA CALCULAR GANANCIA
         let summary = {};
 
         cart.forEach(item => {
             if(!summary[item.id]) summary[item.id] = { name: item.name, qty: 0, price: item.price };
             summary[item.id].qty++;
             subtotal += parseFloat(item.price);
+            costoTotalCompra += parseFloat(item.costo_compra || 0); // SUMA COSTOS
         });
 
         const total = isDelivery ? subtotal + shippingCost : subtotal;
+        const gananciaNeta = total - costoTotalCompra; // CAMBIO: CÁLCULO ESTADO RESULTADOS
 
         // --- REGISTRO CONTABLE EN SUPABASE ---
         const ventaData = {
@@ -370,6 +381,7 @@
             subtotal: subtotal,
             envio: isDelivery ? shippingCost : 0,
             total: total,
+            ganancia_neta: gananciaNeta, // CAMBIO: GUARDA GANANCIA
             detalles: Object.values(summary)
         };
 
@@ -418,10 +430,12 @@
         if (error) return alert("Error: " + error.message);
 
         let totalDinero = 0;
+        let totalGanancia = 0; // CAMBIO: NUEVO CONTADOR
         let tablaHtml = "";
 
         ventas.forEach(v => {
             totalDinero += v.total;
+            totalGanancia += (v.ganancia_neta || 0); // SUMA GANANCIAS
             const fecha = new Date(v.created_at).toLocaleDateString();
             tablaHtml += `<tr style="border-bottom: 1px solid #1f2937;">
                 <td style="padding: 8px;">${fecha}</td>
@@ -431,7 +445,7 @@
         });
 
         document.getElementById('stats-total').innerText = `$${totalDinero}`;
-        document.getElementById('stats-cantidad').innerText = ventas.length;
+        document.getElementById('stats-ganancia').innerText = `$${totalGanancia}`; // ACTUALIZA GANANCIA
         document.getElementById('tabla-ventas-body').innerHTML = tablaHtml || "<tr><td colspan='3' style='text-align:center; padding:10px;'>Sin ventas</td></tr>";
     }
 
