@@ -73,10 +73,10 @@
         }
         #toast.show { transform: translateX(-50%) translateY(0); }
 
-        /* Estilo para tabla de almacén */
         .almacen-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; color: #cbd5e1; }
         .almacen-table th { text-align: left; padding: 8px; background: #1f2937; color: var(--accent); }
         .almacen-table td { padding: 8px; border-bottom: 1px solid #1f2937; }
+        .edit-input { width: 50px !important; padding: 4px !important; margin: 0 !important; font-size: 0.7rem; background: #1f2937 !important; text-align: center; }
     </style>
 </head>
 <body>
@@ -157,23 +157,25 @@
                     <h3 id="stats-ganancia" style="margin: 5px 0; color: var(--success);">$0</h3>
                 </div>
             </div>
+            <button class="btn btn-danger" style="width:100%; margin-bottom:15px; font-size:0.7rem; padding:5px" onclick="resetVentas()">Reiniciar Estado de Resultados</button>
             
             <h3 style="color:var(--accent); font-size: 1rem;"><i class="fas fa-warehouse"></i> Almacén de Productos</h3>
-            <div style="max-height: 150px; overflow-y: auto; background: #030712; border-radius: 10px; border: 1px solid #374151; margin-bottom: 10px;">
+            <div style="max-height: 200px; overflow-y: auto; background: #030712; border-radius: 10px; border: 1px solid #374151; margin-bottom: 10px;">
                 <table class="almacen-table">
                     <thead>
                         <tr>
                             <th>Producto</th>
                             <th>Stock</th>
-                            <th>Compra</th>
-                            <th>Venta</th>
+                            <th>Comp.</th>
+                            <th>Vent.</th>
+                            <th>Acción</th>
                         </tr>
                     </thead>
                     <tbody id="almacen-body"></tbody>
                 </table>
             </div>
 
-            <button class="btn btn-blue" style="width:100%; margin-bottom:10px; justify-content:center" onclick="cargarContabilidad()">Actualizar Reporte</button>
+            <button class="btn btn-blue" style="width:100%; margin-bottom:10px; justify-content:center" onclick="cargarContabilidad()">Actualizar Todo</button>
         </div>
 
         <h3 style="color:var(--admin); margin-top:0">Nuevo Producto</h3>
@@ -237,77 +239,36 @@
     async function updateStoreName() {
         const newName = document.getElementById('store-name-input').value;
         if(!newName) return;
-
-        const { error } = await supabaseClient
-            .from('configuracion')
-            .update({ value: newName })
-            .eq('key', 'store_name');
-
-        if (error) {
-            alert("Error al sincronizar: " + error.message);
-        } else {
-            document.getElementById('store-logo').innerText = newName;
-            document.title = newName;
-            alert("¡Nombre de tienda actualizado globalmente!");
-        }
+        const { error } = await supabaseClient.from('configuracion').update({ value: newName }).eq('key', 'store_name');
+        if (error) alert(error.message);
+        else { document.getElementById('store-logo').innerText = newName; document.title = newName; alert("¡Nombre actualizado!"); }
     }
 
     async function updateShippingCost() {
         const cost = document.getElementById('shipping-cost-input').value;
         if(cost === "") return;
-
-        const { error } = await supabaseClient
-            .from('configuracion')
-            .update({ value: cost })
-            .eq('key', 'shipping_cost');
-
-        if (error) {
-            alert("Error al actualizar envío: " + error.message);
-        } else {
-            shippingCost = parseFloat(cost);
-            alert("Costo de envío actualizado globalmente");
-            updateCart();
-        }
+        const { error } = await supabaseClient.from('configuracion').update({ value: cost }).eq('key', 'shipping_cost');
+        if (error) alert(error.message);
+        else { shippingCost = parseFloat(cost); alert("Envío actualizado"); updateCart(); }
     }
 
     async function updateStorePhone() {
         const phone = document.getElementById('store-phone-input').value.replace(/\+/g, '').trim();
         if(!phone) return alert("Ingresa un número válido");
-
-        const { error } = await supabaseClient
-            .from('configuracion')
-            .update({ value: phone })
-            .eq('key', 'store_phone');
-
-        if (error) {
-            alert("Error al actualizar teléfono: " + error.message);
-        } else {
-            storePhone = phone;
-            alert("¡WhatsApp de destino actualizado!");
-        }
+        const { error } = await supabaseClient.from('configuracion').update({ value: phone }).eq('key', 'store_phone');
+        if (error) alert(error.message);
+        else { storePhone = phone; alert("¡WhatsApp actualizado!"); }
     }
 
     window.onload = async () => {
         const { data: config, error } = await supabaseClient.from('configuracion').select('*');
-        
         if (!error && config) {
             config.forEach(item => {
-                if (item.key === 'store_name') {
-                    document.getElementById('store-logo').innerText = item.value;
-                    document.getElementById('store-name-input').value = item.value;
-                    document.title = item.value;
-                }
-                if (item.key === 'shipping_cost') {
-                    shippingCost = parseFloat(item.value);
-                    document.getElementById('shipping-cost-input').value = shippingCost;
-                }
-                if (item.key === 'store_phone') {
-                    storePhone = item.value;
-                    document.getElementById('store-phone-input').value = item.value;
-                }
+                if (item.key === 'store_name') { document.getElementById('store-logo').innerText = item.value; document.getElementById('store-name-input').value = item.value; document.title = item.value; }
+                if (item.key === 'shipping_cost') { shippingCost = parseFloat(item.value); document.getElementById('shipping-cost-input').value = shippingCost; }
+                if (item.key === 'store_phone') { storePhone = item.value; document.getElementById('store-phone-input').value = item.value; }
             });
         }
-        
         fetchProducts();
     };
 
@@ -315,26 +276,35 @@
         document.getElementById('loader').style.display = 'flex';
         const { data, error } = await supabaseClient.from('productos').select('*').order('created_at', { ascending: false });
         document.getElementById('loader').style.display = 'none';
-
-        if (error) console.error(error);
-        else {
-            products = data;
-            render();
-            renderAlmacen();
-        }
+        if (!error) { products = data; render(); renderAlmacen(); }
     }
 
-    // FUNCIÓN PARA RENDERIZAR LA TABLA DE ALMACÉN
     function renderAlmacen() {
         const body = document.getElementById('almacen-body');
         body.innerHTML = products.map(p => `
             <tr>
-                <td>${p.name}</td>
-                <td style="font-weight:bold">${p.stock}</td>
-                <td>$${p.costo_compra || 0}</td>
-                <td style="color:var(--accent)">$${p.price}</td>
+                <td><small>${p.name}</small></td>
+                <td><input type="number" class="edit-input" value="${p.stock}" onchange="editProduct(${p.id}, 'stock', this.value)"></td>
+                <td><input type="number" class="edit-input" value="${p.costo_compra}" onchange="editProduct(${p.id}, 'costo_compra', this.value)"></td>
+                <td><input type="number" class="edit-input" value="${p.price}" onchange="editProduct(${p.id}, 'price', this.value)"></td>
+                <td><i class="fas fa-trash-alt" style="color:var(--danger); cursor:pointer" onclick="remove(${p.id})"></i></td>
             </tr>
         `).join('');
+    }
+
+    async function editProduct(id, field, value) {
+        const obj = {}; obj[field] = value;
+        const { error } = await supabaseClient.from('productos').update(obj).eq('id', id);
+        if (error) alert("Error al editar");
+        else fetchProducts();
+    }
+
+    async function resetVentas() {
+        if(confirm("¿Seguro que quieres borrar todo el historial de ventas? Esto reiniciará la Caja y Ganancia a $0.")){
+            const { error } = await supabaseClient.from('ventas').delete().neq('id', 0);
+            if (error) alert("Error");
+            else cargarContabilidad();
+        }
     }
 
     async function save() {
@@ -343,27 +313,12 @@
         const cost = document.getElementById('c-prod').value;
         const stock = parseInt(document.getElementById('s-prod').value);
         const file = document.getElementById('i-prod').files[0];
-
         if(!name || !price || !cost || !file || isNaN(stock)) return alert("Faltan datos");
-
         const reader = new FileReader();
         reader.onloadend = async () => {
-            const { error } = await supabaseClient.from('productos').insert([{ 
-                name, 
-                price, 
-                costo_compra: cost,
-                stock, 
-                img: reader.result 
-            }]);
-            if (error) alert("Error al guardar: " + error.message);
-            else {
-                fetchProducts();
-                closeModal('modalAdmin');
-                document.getElementById('n-prod').value = "";
-                document.getElementById('p-prod').value = "";
-                document.getElementById('c-prod').value = "";
-                document.getElementById('s-prod').value = "";
-            }
+            const { error } = await supabaseClient.from('productos').insert([{ name, price, costo_compra: cost, stock, img: reader.result }]);
+            if (error) alert(error.message);
+            else { fetchProducts(); closeModal('modalAdmin'); }
         };
         reader.readAsDataURL(file);
     }
@@ -371,181 +326,88 @@
     async function remove(id) {
         if(confirm("¿Seguro que quieres borrar este producto?")) {
             const { error } = await supabaseClient.from('productos').delete().eq('id', id);
-            if(error) alert("Error al borrar");
-            else fetchProducts();
+            if(!error) fetchProducts();
         }
     }
 
     async function checkout() {
         if(cart.length === 0) return;
-        
         const isDelivery = document.getElementById('shipping-method').value === "delivery";
-        if(isDelivery && (!address || address.trim() === "")) {
-            alert("Por favor, ingrese su dirección en el perfil para envíos.");
-            showModal('modalAuth');
-            return;
-        }
-
-        let subtotal = 0;
-        let costoTotalInversion = 0;
-        let summary = {};
-
+        if(isDelivery && (!address || address.trim() === "")) { alert("Ingrese dirección en Acceder"); showModal('modalAuth'); return; }
+        let subtotal = 0; let costoTotalInversion = 0; let summary = {};
         cart.forEach(item => {
             if(!summary[item.id]) summary[item.id] = { name: item.name, qty: 0, price: item.price };
-            summary[item.id].qty++;
-            subtotal += parseFloat(item.price);
-            costoTotalInversion += parseFloat(item.costo_compra || 0);
+            summary[item.id].qty++; subtotal += parseFloat(item.price); costoTotalInversion += parseFloat(item.costo_compra || 0);
         });
-
         const total = isDelivery ? subtotal + shippingCost : subtotal;
-        
-        // Estado Resultado: Ingreso (total) - Gasto (costo inversión)
         const gananciaNeta = total - costoTotalInversion;
-
-        const ventaData = {
-            cliente: user || "Cliente Anónimo",
-            direccion: address || "Retiro en tienda",
-            metodo_entrega: document.getElementById('shipping-method').value,
-            subtotal: subtotal,
-            envio: isDelivery ? shippingCost : 0,
-            total: total,
-            ganancia_neta: gananciaNeta,
-            detalles: Object.values(summary)
-        };
-
-        const { error: errVenta } = await supabaseClient.from('ventas').insert([ventaData]);
-        
+        const ventaData = { cliente: user || "Anónimo", direccion: address || "Tienda", metodo_entrega: document.getElementById('shipping-method').value, subtotal, envio: isDelivery ? shippingCost : 0, total, ganancia_neta: gananciaNeta, detalles: Object.values(summary) };
+        await supabaseClient.from('ventas').insert([ventaData]);
         for(let id in summary) {
             const original = products.find(p => p.id == id);
-            if(original) {
-                const newStock = original.stock - summary[id].qty;
-                await supabaseClient.from('productos').update({ stock: newStock }).eq('id', id);
-            }
+            if(original) await supabaseClient.from('productos').update({ stock: original.stock - summary[id].qty }).eq('id', id);
         }
-
         whatsappMsg = "*PEDIDO DE: " + (user || "Cliente").toUpperCase() + "*%0A";
-        whatsappMsg += "*ENTREGA:* " + (isDelivery ? "Envío a Domicilio" : "Retiro en Tienda") + "%0A";
-        if(address) whatsappMsg += "*DIRECCIÓN:* " + address + "%0A";
-        whatsappMsg += "%0A";
-
-        let html = "";
-        for(let id in summary) {
-            let s = summary[id];
-            html += `<div class="invoice-line"><span>${s.name} x${s.qty}</span><span>$${s.qty * s.price}</span></div>`;
-            whatsappMsg += `- ${s.name} (x${s.qty}): $${s.qty * s.price}%0A`;
-        }
-        
-        if(isDelivery) {
-            html += `<div class="invoice-line"><span>Costo de Envío</span><span>$${shippingCost}</span></div>`;
-            whatsappMsg += `- Envío: $${shippingCost}%0A`;
-        }
-
-        whatsappMsg += "%0A*TOTAL: $" + total + "*";
-
-        document.getElementById('invoice-details').innerHTML = html + `<div style="border-top:1px solid #333; margin-top:10px; padding-top:10px; font-weight:bold; display:flex; justify-content:space-between; color:var(--accent)"><span>TOTAL:</span><span>$${total}</span></div>`;
-        
-        cart = [];
-        updateCart();
-        fetchProducts();
-        closeModal('modalCart');
-        showModal('modalInvoice');
+        whatsappMsg += "*TOTAL: $" + total + "*";
+        document.getElementById('invoice-details').innerHTML = `Total: $${total}`;
+        cart = []; updateCart(); fetchProducts(); closeModal('modalCart'); showModal('modalInvoice');
     }
 
     async function cargarContabilidad() {
         const { data: ventas, error } = await supabaseClient.from('ventas').select('*');
         if (error) return;
-
-        let totalCaja = 0; // Ingreso x ventas realizadas
-        let totalGanancia = 0; // Ingreso - Gasto
-
-        ventas.forEach(v => {
-            totalCaja += v.total;
-            totalGanancia += (v.ganancia_neta || 0);
-        });
-
+        let totalCaja = 0; let totalGanancia = 0;
+        ventas.forEach(v => { totalCaja += v.total; totalGanancia += (v.ganancia_neta || 0); });
         document.getElementById('stats-total').innerText = `$${totalCaja}`;
         document.getElementById('stats-ganancia').innerText = `$${totalGanancia}`;
-        renderAlmacen();
+        fetchProducts();
     }
 
     function login() {
         const u = document.getElementById('u-in').value;
         const p = document.getElementById('p-in').value;
-        const a = document.getElementById('a-in').value;
-        address = a;
-
+        address = document.getElementById('a-in').value;
         if(u === "admin" && p === "0607") {
-            user = "admin";
-            document.getElementById('btn-admin').style.display = 'inline-flex';
-            document.getElementById('btn-user').innerText = "Modo Admin";
-            cargarContabilidad();
+            user = "admin"; document.getElementById('btn-admin').style.display = 'inline-flex';
+            document.getElementById('btn-user').innerText = "Admin"; cargarContabilidad();
         } else if(u && p) {
-            user = u;
-            document.getElementById('btn-admin').style.display = 'none';
-            document.getElementById('btn-user').innerText = "Hola, " + u;
+            user = u; document.getElementById('btn-user').innerText = "Hola, " + u;
         }
-        closeModal('modalAuth');
-        render();
+        closeModal('modalAuth'); render();
     }
 
-    function showToast() {
-        const toast = document.getElementById('toast');
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 2000);
-    }
+    function showToast() { document.getElementById('toast').classList.add('show'); setTimeout(() => document.getElementById('toast').classList.remove('show'), 2000); }
 
     function addCart(id) {
         if(!user) return showModal('modalAuth');
         const p = products.find(x => x.id === id);
-        const inCart = cart.filter(item => item.id === id).length;
-        if(p.stock <= inCart) return alert("No hay más stock");
-        cart.push({...p, cartId: Date.now() + Math.random()});
-        updateCart();
-        showToast();
+        if(p.stock <= cart.filter(item => item.id === id).length) return alert("Sin stock");
+        cart.push({...p, cartId: Date.now()}); updateCart(); showToast();
     }
 
     function changeQty(id, delta) {
         if (delta > 0) addCart(id);
-        else {
-            const index = cart.findLastIndex(item => item.id === id);
-            if (index !== -1) cart.splice(index, 1);
-            updateCart();
-        }
+        else { const idx = cart.findLastIndex(item => item.id === id); if (idx !== -1) cart.splice(idx, 1); updateCart(); }
     }
 
-    function removeFromCart(id) {
-        cart = cart.filter(item => item.id !== id);
-        updateCart();
-    }
+    function removeFromCart(id) { cart = cart.filter(item => item.id !== id); updateCart(); }
 
     function updateCart() {
         document.getElementById('count').innerText = cart.length;
-        const grouped = cart.reduce((acc, item) => {
-            if (!acc[item.id]) acc[item.id] = { ...item, qty: 0 };
-            acc[item.id].qty++;
-            return acc;
-        }, {});
-
+        const grouped = cart.reduce((acc, item) => { if (!acc[item.id]) acc[item.id] = { ...item, qty: 0 }; acc[item.id].qty++; return acc; }, {});
         let subtotal = 0;
         document.getElementById('cart-list').innerHTML = Object.values(grouped).map(i => {
             subtotal += (parseFloat(i.price) * i.qty);
-            return `<div style="padding:10px; background:#1f2937; margin:5px; border-radius:8px; display:flex; justify-content:space-between; align-items:center">
-                <div><span>${i.name}</span><br><small style="color:var(--accent)">$${i.price}</small></div>
+            return `<div style="padding:8px; background:#1f2937; margin:5px; border-radius:8px; display:flex; justify-content:space-between; align-items:center">
+                <span>${i.name}</span>
                 <div style="display:flex; align-items:center; gap:10px">
-                    <button class="qty-btn" onclick="changeQty(${i.id}, -1)">-</button>
-                    <span>${i.qty}</span>
-                    <button class="qty-btn" onclick="changeQty(${i.id}, 1)">+</button>
-                    <i class="fas fa-trash remove-item" onclick="removeFromCart(${i.id})"></i>
+                    <button class="qty-btn" onclick="changeQty(${i.id}, -1)">-</button><span>${i.qty}</span><button class="qty-btn" onclick="changeQty(${i.id}, 1)">+</button>
                 </div>
             </div>`;
         }).join('');
-        
         const isDelivery = document.getElementById('shipping-method').value === "delivery";
-        const finalShipping = isDelivery ? shippingCost : 0;
-        document.getElementById('shipping-line').style.display = isDelivery ? 'flex' : 'none';
-        document.getElementById('shipping-price-display').innerText = `$${finalShipping}`;
         document.getElementById('cart-subtotal').innerText = `$${subtotal}`;
-        document.getElementById('cart-total').innerText = `$${subtotal + finalShipping}`;
+        document.getElementById('cart-total').innerText = `$${subtotal + (isDelivery ? shippingCost : 0)}`;
     }
 
     function render() {
@@ -553,19 +415,16 @@
         g.innerHTML = products.map(p => `
             <div class="card">
                 ${user === 'admin' ? `<button class="delete-btn" style="display:block" onclick="remove(${p.id})">Borrar</button>` : ''}
-                <img src="${p.img}" loading="lazy">
-                <div class="stock-tag ${p.stock <= 0 ? 'out-of-stock' : ''}">${p.stock > 0 ? 'Stock: '+p.stock : 'AGOTADO'}</div>
-                <h3 style="margin:5px 0">${p.name}</h3>
-                <div style="color:var(--accent); font-weight:bold; margin-bottom:10px">$${p.price}</div>
-                <button class="btn btn-blue" style="width:100%; justify-content:center" onclick="addCart(${p.id})" ${p.stock <= 0 ? 'disabled' : ''}>${p.stock <= 0 ? 'Agotado' : 'Añadir'}</button>
+                <img src="${p.img}">
+                <div class="stock-tag">${p.stock > 0 ? 'Stock: '+p.stock : 'AGOTADO'}</div>
+                <h3>${p.name}</h3>
+                <div style="color:var(--accent); font-weight:bold">$${p.price}</div>
+                <button class="btn btn-blue" style="width:100%; justify-content:center" onclick="addCart(${p.id})" ${p.stock <= 0 ? 'disabled' : ''}>Añadir</button>
             </div>
         `).join('');
     }
 
-    function shareWhatsApp() { 
-        if(!storePhone) return alert("Configura el WhatsApp en el panel Admin.");
-        window.open("https://wa.me/" + storePhone + "?text=" + whatsappMsg, '_blank'); 
-    }
+    function shareWhatsApp() { if(!storePhone) return alert("Configura WhatsApp"); window.open("https://wa.me/" + storePhone + "?text=" + whatsappMsg, '_blank'); }
 </script>
 </body>
 </html>
