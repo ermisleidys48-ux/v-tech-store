@@ -76,7 +76,8 @@
         .almacen-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; color: #cbd5e1; }
         .almacen-table th { text-align: left; padding: 8px; background: #1f2937; color: var(--accent); }
         .almacen-table td { padding: 8px; border-bottom: 1px solid #1f2937; }
-        .edit-input { width: 50px !important; padding: 4px !important; margin: 0 !important; font-size: 0.7rem; background: #1f2937 !important; text-align: center; }
+        .edit-input { width: 50px !important; padding: 4px !important; margin: 0 !important; font-size: 0.7rem; background: #1f2937 !important; text-align: center; border: 1px solid #374151 !important; border-radius: 4px; }
+        .stats-input { background: transparent; border: 1px solid #374151; color: white; text-align: center; font-size: 1.2rem; font-weight: bold; width: 80%; border-radius: 8px; margin-top: 5px; padding: 5px; }
     </style>
 </head>
 <body>
@@ -150,15 +151,14 @@
             <h3 style="color:var(--admin); margin-top:0"><i class="fas fa-chart-line"></i> Estado de Resultados</h3>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
                 <div style="background: #030712; padding: 10px; border-radius: 10px; border: 1px solid #374151; text-align: center;">
-                    <small style="color: #94a3b8;">Efectivo en Caja</small>
-                    <h3 id="stats-total" style="margin: 5px 0; color: white;">$0</h3>
+                    <small style="color: #94a3b8;">Efectivo en Caja ($)</small>
+                    <input type="number" id="stats-total-input" class="stats-input" onchange="manualUpdateStat('total_caja', this.value)">
                 </div>
                 <div style="background: #030712; padding: 10px; border-radius: 10px; border: 1px solid #374151; text-align: center;">
-                    <small style="color: #94a3b8;">Ganancia Neta</small>
-                    <h3 id="stats-ganancia" style="margin: 5px 0; color: var(--success);">$0</h3>
+                    <small style="color: #94a3b8;">Ganancia Neta ($)</small>
+                    <input type="number" id="stats-ganancia-input" class="stats-input" style="color: var(--success);" onchange="manualUpdateStat('ganancia_neta', this.value)">
                 </div>
             </div>
-            <button class="btn btn-danger" style="width:100%; margin-bottom:15px; font-size:0.7rem; padding:5px" onclick="resetVentas()">Reiniciar Estado de Resultados</button>
             
             <h3 style="color:var(--accent); font-size: 1rem;"><i class="fas fa-warehouse"></i> Almacén de Productos</h3>
             <div style="max-height: 200px; overflow-y: auto; background: #030712; border-radius: 10px; border: 1px solid #374151; margin-bottom: 10px;">
@@ -176,7 +176,7 @@
                 </table>
             </div>
 
-            <button class="btn btn-blue" style="width:100%; margin-bottom:10px; justify-content:center" onclick="cargarContabilidad()">Actualizar Todo</button>
+            <button class="btn btn-blue" style="width:100%; margin-bottom:10px; justify-content:center" onclick="cargarContabilidad()">Sincronizar Datos</button>
         </div>
 
         <h3 style="color:var(--admin); margin-top:0">Nuevo Producto</h3>
@@ -261,6 +261,11 @@
         else { storePhone = phone; alert("¡WhatsApp actualizado!"); }
     }
 
+    async function manualUpdateStat(key, value) {
+        const { error } = await supabaseClient.from('configuracion').upsert({ key, value }, { onConflict: 'key' });
+        if (error) alert("Error al guardar: " + error.message);
+    }
+
     window.onload = async () => {
         const { data: config, error } = await supabaseClient.from('configuracion').select('*');
         if (!error && config) {
@@ -268,10 +273,11 @@
                 if (item.key === 'store_name') { document.getElementById('store-logo').innerText = item.value; document.getElementById('store-name-input').value = item.value; document.title = item.value; }
                 if (item.key === 'shipping_cost') { shippingCost = parseFloat(item.value); document.getElementById('shipping-cost-input').value = shippingCost; }
                 if (item.key === 'store_phone') { storePhone = item.value; document.getElementById('store-phone-input').value = item.value; }
+                if (item.key === 'total_caja') { document.getElementById('stats-total-input').value = item.value; }
+                if (item.key === 'ganancia_neta') { document.getElementById('stats-ganancia-input').value = item.value; }
             });
         }
         
-        // Cargar sesión guardada
         const savedUser = localStorage.getItem('store_user');
         const savedAddress = localStorage.getItem('store_address');
         if(savedUser) {
@@ -317,19 +323,6 @@
         else fetchProducts();
     }
 
-    async function resetVentas() {
-        if(confirm("¿Seguro que quieres borrar todo el historial de ventas? Esto reiniciará la Caja y Ganancia a $0.")){
-            // Corrección del error de reinicio usando un filtro que siempre sea verdadero para borrar todo
-            const { error } = await supabaseClient.from('ventas').delete().neq('id', -1);
-            if (error) {
-                alert("Error al reiniciar: " + error.message);
-            } else {
-                alert("Estado de resultados reiniciado.");
-                cargarContabilidad();
-            }
-        }
-    }
-
     async function save() {
         const name = document.getElementById('n-prod').value;
         const price = document.getElementById('p-prod').value;
@@ -364,8 +357,20 @@
         });
         const total = isDelivery ? subtotal + shippingCost : subtotal;
         const gananciaNeta = total - costoTotalInversion;
-        const ventaData = { cliente: user || "Anónimo", direccion: address || "Tienda", metodo_entrega: document.getElementById('shipping-method').value, subtotal, envio: isDelivery ? shippingCost : 0, total, ganancia_neta: gananciaNeta, detalles: Object.values(summary) };
-        await supabaseClient.from('ventas').insert([ventaData]);
+        
+        // Sumar automáticamente a los valores actuales
+        const currentCaja = parseFloat(document.getElementById('stats-total-input').value || 0);
+        const currentGanancia = parseFloat(document.getElementById('stats-ganancia-input').value || 0);
+        
+        const newCaja = currentCaja + total;
+        const newGanancia = currentGanancia + gananciaNeta;
+
+        await manualUpdateStat('total_caja', newCaja);
+        await manualUpdateStat('ganancia_neta', newGanancia);
+        
+        document.getElementById('stats-total-input').value = newCaja;
+        document.getElementById('stats-ganancia-input').value = newGanancia;
+
         for(let id in summary) {
             const original = products.find(p => p.id == id);
             if(original) await supabaseClient.from('productos').update({ stock: original.stock - summary[id].qty }).eq('id', id);
@@ -377,12 +382,13 @@
     }
 
     async function cargarContabilidad() {
-        const { data: ventas, error } = await supabaseClient.from('ventas').select('*');
-        if (error) return;
-        let totalCaja = 0; let totalGanancia = 0;
-        ventas.forEach(v => { totalCaja += v.total; totalGanancia += (v.ganancia_neta || 0); });
-        document.getElementById('stats-total').innerText = `$${totalCaja}`;
-        document.getElementById('stats-ganancia').innerText = `$${totalGanancia}`;
+        const { data: config, error } = await supabaseClient.from('configuracion').select('*');
+        if (!error && config) {
+            config.forEach(item => {
+                if (item.key === 'total_caja') document.getElementById('stats-total-input').value = item.value;
+                if (item.key === 'ganancia_neta') document.getElementById('stats-ganancia-input').value = item.value;
+            });
+        }
         fetchProducts();
     }
 
@@ -390,7 +396,6 @@
         const u = document.getElementById('u-in').value;
         const p = document.getElementById('p-in').value;
         address = document.getElementById('a-in').value;
-        
         if(u === "admin" && p === "0607") {
             user = "admin"; 
             document.getElementById('btn-admin').style.display = 'inline-flex';
@@ -400,12 +405,10 @@
             user = u; 
             document.getElementById('btn-user').innerText = "Hola, " + u;
         }
-
         if(user) {
             localStorage.setItem('store_user', user);
             localStorage.setItem('store_address', address);
         }
-
         closeModal('modalAuth'); render();
     }
 
@@ -428,8 +431,6 @@
         if (delta > 0) addCart(id);
         else { const idx = cart.findLastIndex(item => item.id === id); if (idx !== -1) cart.splice(idx, 1); updateCart(); }
     }
-
-    function removeFromCart(id) { cart = cart.filter(item => item.id !== id); updateCart(); }
 
     function updateCart() {
         document.getElementById('count').innerText = cart.length;
@@ -467,3 +468,4 @@
 </script>
 </body>
 </html>
+
