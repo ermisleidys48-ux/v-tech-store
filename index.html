@@ -140,6 +140,27 @@
             </div>
         </div>
 
+        <div style="margin-bottom: 20px; border-bottom: 1px solid #374151; padding-bottom: 20px;">
+            <h3 style="color:var(--admin); margin-top:0"><i class="fas fa-chart-line"></i> Contabilidad</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                <div style="background: #030712; padding: 10px; border-radius: 10px; border: 1px solid #374151; text-align: center;">
+                    <small style="color: #94a3b8;">Ingresos</small>
+                    <h3 id="stats-total" style="margin: 5px 0; color: var(--success);">$0</h3>
+                </div>
+                <div style="background: #030712; padding: 10px; border-radius: 10px; border: 1px solid #374151; text-align: center;">
+                    <small style="color: #94a3b8;">Ventas</small>
+                    <h3 id="stats-cantidad" style="margin: 5px 0; color: var(--accent);">0</h3>
+                </div>
+            </div>
+            <button class="btn btn-blue" style="width:100%; margin-bottom:10px; justify-content:center" onclick="cargarContabilidad()">Actualizar Reporte</button>
+            
+            <div style="max-height: 150px; overflow-y: auto; background: #030712; border-radius: 10px; border: 1px solid #374151; font-size: 0.8rem;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tbody id="tabla-ventas-body"></tbody>
+                </table>
+            </div>
+        </div>
+
         <h3 style="color:var(--admin); margin-top:0">Nuevo Producto</h3>
         <input type="text" id="n-prod" placeholder="Nombre">
         <input type="number" id="p-prod" placeholder="Precio ($)">
@@ -341,6 +362,21 @@
 
         const total = isDelivery ? subtotal + shippingCost : subtotal;
 
+        // --- REGISTRO CONTABLE EN SUPABASE ---
+        const ventaData = {
+            cliente: user || "Cliente Anónimo",
+            direccion: address || "Retiro en tienda",
+            metodo_entrega: document.getElementById('shipping-method').value,
+            subtotal: subtotal,
+            envio: isDelivery ? shippingCost : 0,
+            total: total,
+            detalles: Object.values(summary)
+        };
+
+        const { error: errVenta } = await supabaseClient.from('ventas').insert([ventaData]);
+        if(errVenta) console.error("Error contable:", errVenta);
+        // --- FIN REGISTRO CONTABLE ---
+
         for(let id in summary) {
             const original = products.find(p => p.id == id);
             if(original) {
@@ -377,6 +413,28 @@
         showModal('modalInvoice');
     }
 
+    async function cargarContabilidad() {
+        const { data: ventas, error } = await supabaseClient.from('ventas').select('*').order('created_at', { ascending: false });
+        if (error) return alert("Error: " + error.message);
+
+        let totalDinero = 0;
+        let tablaHtml = "";
+
+        ventas.forEach(v => {
+            totalDinero += v.total;
+            const fecha = new Date(v.created_at).toLocaleDateString();
+            tablaHtml += `<tr style="border-bottom: 1px solid #1f2937;">
+                <td style="padding: 8px;">${fecha}</td>
+                <td style="padding: 8px;">${v.cliente}</td>
+                <td style="padding: 8px; color: var(--success); font-weight: bold;">$${v.total}</td>
+            </tr>`;
+        });
+
+        document.getElementById('stats-total').innerText = `$${totalDinero}`;
+        document.getElementById('stats-cantidad').innerText = ventas.length;
+        document.getElementById('tabla-ventas-body').innerHTML = tablaHtml || "<tr><td colspan='3' style='text-align:center; padding:10px;'>Sin ventas</td></tr>";
+    }
+
     function login() {
         const u = document.getElementById('u-in').value;
         const p = document.getElementById('p-in').value;
@@ -388,6 +446,7 @@
             user = "admin";
             document.getElementById('btn-admin').style.display = 'inline-flex';
             document.getElementById('btn-user').innerText = "Modo Admin";
+            cargarContabilidad();
         } else if(u && p) {
             user = u;
             document.getElementById('btn-admin').style.display = 'none';
