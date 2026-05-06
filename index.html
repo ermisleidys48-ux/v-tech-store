@@ -54,7 +54,7 @@
         .qty-btn:hover { background: var(--accent); color: black; }
 
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; backdrop-filter: blur(5px); align-items: center; justify-content: center; }
-        .modal-content { background: #111827; padding: 40px; width: 90%; max-width: 450px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); overflow-y: auto; max-height: 90vh; }
+        .modal-content { background: #111827; padding: 40px; width: 90%; max-width: 400px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); overflow-y: auto; max-height: 90vh; }
 
         .invoice-box { background: #030712; border: 1px dashed #374151; padding: 20px; border-radius: 12px; font-family: monospace; font-size: 0.9rem; margin: 15px 0; color: #cbd5e1; }
         .invoice-line { display: flex; justify-content: space-between; margin-bottom: 5px; }
@@ -72,15 +72,6 @@
             transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 3000;
         }
         #toast.show { transform: translateX(-50%) translateY(0); }
-
-        .almacen-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; color: #cbd5e1; }
-        .almacen-table th { text-align: left; padding: 8px; background: #1f2937; color: var(--accent); }
-        .almacen-table td { padding: 8px; border-bottom: 1px solid #1f2937; }
-        .edit-input { width: 50px !important; padding: 4px !important; margin: 0 !important; font-size: 0.7rem; background: #1f2937 !important; text-align: center; }
-
-        /* Estilos nuevos para las tarjetas contables */
-        .stats-card-mini { background: #030712; padding: 10px; border-radius: 10px; border: 1px solid #374151; text-align: center; }
-        .stats-input-mini { background: #1f2937; border: 1px solid #4b5563; color: white; text-align: center; font-size: 0.8rem; width: 90%; border-radius: 6px; padding: 4px; margin-top: 4px; }
     </style>
 </head>
 <body>
@@ -122,7 +113,6 @@
         <input type="password" id="p-in" placeholder="Clave">
         <input type="text" id="a-in" placeholder="Direcci&oacute;n (Obligatoria para envíos)">
         <button class="btn btn-blue" style="width:100%; justify-content: center;" onclick="login()">Entrar</button>
-        <button class="btn btn-danger" style="width:100%; justify-content: center; margin-top:10px; background:transparent; border:1px solid var(--danger); color:var(--danger)" onclick="logout()">Cerrar Sesión</button>
     </div>
 </div>
 
@@ -143,70 +133,19 @@
                 <button class="btn btn-blue" onclick="updateShippingCost()">Guardar</button>
             </div>
 
-            <p style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 5px; margin-top: 15px;">WhatsApp del Negocio:</p>
+            <p style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 5px; margin-top: 15px;">WhatsApp del Negocio (con código de país):</p>
             <div style="display:flex; gap:5px;">
                 <input type="text" id="store-phone-input" placeholder="Ej: 5491122334455" style="margin:0">
                 <button class="btn btn-blue" onclick="updateStorePhone()">Guardar</button>
             </div>
         </div>
 
-        <div style="margin-bottom: 20px; border-bottom: 1px solid #374151; padding-bottom: 20px;">
-            <h3 style="color:var(--admin); margin-top:0"><i class="fas fa-chart-line"></i> Sistema Contable</h3>
-            
-            <div style="margin-bottom: 15px; border: 1px solid #374151; padding: 10px; border-radius: 12px;">
-                <small style="color: var(--accent); display:block; margin-bottom:8px">Estado Resultado (Ingreso - Gasto)</small>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                    <div class="stats-card-mini">
-                        <small style="color: #94a3b8;">Ingreso ($)</small>
-                        <input type="number" id="inp-ingreso" class="stats-input-mini" value="0" oninput="calcularContabilidad()">
-                    </div>
-                    <div class="stats-card-mini">
-                        <small style="color: #94a3b8;">Gasto ($)</small>
-                        <input type="number" id="inp-gasto" class="stats-input-mini" value="0" oninput="calcularContabilidad()">
-                    </div>
-                </div>
-                <div style="text-align: center; margin-top: 8px;">
-                    <small>Resultado Final: </small><b id="res-estado" style="color:var(--success)">$0</b>
-                </div>
-            </div>
-
-            <div style="margin-bottom: 15px; border: 1px solid #374151; padding: 10px; border-radius: 12px;">
-                <small style="color: var(--admin); display:block; margin-bottom:8px">Efectivo en Caja (Ingreso x Ventas)</small>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                    <div class="stats-card-mini">
-                        <small style="color: #94a3b8;">Ingreso x Venta</small>
-                        <input type="number" id="inp-ingreso-venta" class="stats-input-mini" value="0" oninput="calcularContabilidad()">
-                    </div>
-                    <div class="stats-card-mini">
-                        <small style="color: #94a3b8;">Cant. Ventas</small>
-                        <input type="number" id="inp-cant-ventas" class="stats-input-mini" value="0" oninput="calcularContabilidad()">
-                    </div>
-                </div>
-                <div style="text-align: center; margin-top: 8px;">
-                    <small>Total en Caja: </small><b id="res-caja" style="color:var(--accent)">$0</b>
-                </div>
-            </div>
-            
-            <button class="btn btn-blue" style="width:100%; margin-bottom:10px; font-size:0.8rem" onclick="guardarDatosContables()">Guardar Contabilidad</button>
-        </div>
-
-        <div style="margin-bottom: 20px; border-bottom: 1px solid #374151; padding-bottom: 20px;">
-            <h3 style="color:var(--accent); font-size: 1rem;"><i class="fas fa-warehouse"></i> Almacén de Productos</h3>
-            <div style="max-height: 200px; overflow-y: auto; background: #030712; border-radius: 10px; border: 1px solid #374151; margin-bottom: 10px;">
-                <table class="almacen-table">
-                    <thead><tr><th>Producto</th><th>Stock</th><th>Comp.</th><th>Vent.</th><th>Acción</th></tr></thead>
-                    <tbody id="almacen-body"></tbody>
-                </table>
-            </div>
-        </div>
-
         <h3 style="color:var(--admin); margin-top:0">Nuevo Producto</h3>
         <input type="text" id="n-prod" placeholder="Nombre">
-        <input type="number" id="p-prod" placeholder="Precio de Venta ($)">
-        <input type="number" id="c-prod" placeholder="Precio de Compra ($)"> 
-        <input type="number" id="s-prod" placeholder="Cantidad Inicial (Stock)">
+        <input type="number" id="p-prod" placeholder="Precio ($)">
+        <input type="number" id="s-prod" placeholder="Stock">
         <input type="file" id="i-prod" accept="image/*">
-        <button class="btn btn-admin" style="display:block; width:100%" onclick="save()">Publicar al Almacén</button>
+        <button class="btn btn-admin" style="display:block; width:100%" onclick="save()">Publicar</button>
         <button onclick="closeModal('modalAdmin')" style="background:none; color:white; width:100%; margin-top:10px; border:none; cursor:pointer;">Cancelar</button>
     </div>
 </div>
@@ -215,6 +154,7 @@
     <div class="modal-content">
         <h2>Tu Carrito</h2>
         <div id="cart-list"></div>
+        
         <div style="margin-top: 15px; border-top: 1px solid #374151; padding-top: 15px;">
             <label style="font-size: 0.9rem; color: #94a3b8;">Método de entrega:</label>
             <select id="shipping-method" onchange="updateCart()">
@@ -222,9 +162,20 @@
                 <option value="delivery">Envío a Domicilio</option>
             </select>
         </div>
-        <div style="display:flex; justify-content: space-between; margin-top:10px"><h3>Subtotal:</h3><h3 id="cart-subtotal">$0</h3></div>
-        <div id="shipping-line" style="display:none; justify-content: space-between; margin-top:-10px"><p>Envío:</p><p id="shipping-price-display">$0</p></div>
-        <div style="display:flex; justify-content: space-between; border-top: 1px solid #374151; padding-top: 10px; margin-top:5px"><h3>Total:</h3><h3 id="cart-total" style="color:var(--accent)">$0</h3></div>
+
+        <div style="display:flex; justify-content: space-between; margin-top:10px">
+            <h3>Subtotal:</h3>
+            <h3 id="cart-subtotal">$0</h3>
+        </div>
+        <div id="shipping-line" style="display:none; justify-content: space-between; margin-top:-10px">
+            <p>Envío:</p>
+            <p id="shipping-price-display">$0</p>
+        </div>
+        <div style="display:flex; justify-content: space-between; border-top: 1px solid #374151; padding-top: 10px; margin-top:5px">
+            <h3>Total:</h3>
+            <h3 id="cart-total" style="color:var(--accent)">$0</h3>
+        </div>
+        
         <button class="btn btn-blue" style="width:100%; justify-content: center;" onclick="checkout()">Finalizar Compra</button>
         <button onclick="closeModal('modalCart')" style="background:none; color:white; width:100%; margin-top:15px; border:none; cursor:pointer;">Volver</button>
     </div>
@@ -246,184 +197,298 @@
     function showModal(id) { document.getElementById(id).style.display = 'flex'; }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
-    // LÓGICA DE CONTABILIDAD NUEVA
-    function calcularContabilidad() {
-        const ingreso = parseFloat(document.getElementById('inp-ingreso').value) || 0;
-        const gasto = parseFloat(document.getElementById('inp-gasto').value) || 0;
-        document.getElementById('res-estado').innerText = `$${ingreso - gasto}`;
-
-        const ingresoVenta = parseFloat(document.getElementById('inp-ingreso-venta').value) || 0;
-        const cantVentas = parseFloat(document.getElementById('inp-cant-ventas').value) || 0;
-        document.getElementById('res-caja').innerText = `$${ingresoVenta * cantVentas}`;
-    }
-
-    async function guardarDatosContables() {
-        const datos = [
-            { key: 'cont_ingreso', value: document.getElementById('inp-ingreso').value },
-            { key: 'cont_gasto', value: document.getElementById('inp-gasto').value },
-            { key: 'cont_ingreso_venta', value: document.getElementById('inp-ingreso-venta').value },
-            { key: 'cont_cant_ventas', value: document.getElementById('inp-cant-ventas').value }
-        ];
-        const { error } = await supabaseClient.from('configuracion').upsert(datos);
-        if (error) alert(error.message); else alert("Contabilidad guardada");
-    }
-
-    // TODAS LAS FUNCIONES ORIGINALES SE MANTIENEN ABAJO
     async function updateStoreName() {
         const newName = document.getElementById('store-name-input').value;
-        const { error } = await supabaseClient.from('configuracion').update({ value: newName }).eq('key', 'store_name');
-        if (!error) { document.getElementById('store-logo').innerText = newName; alert("¡Nombre actualizado!"); }
+        if(!newName) return;
+
+        const { error } = await supabaseClient
+            .from('configuracion')
+            .update({ value: newName })
+            .eq('key', 'store_name');
+
+        if (error) {
+            alert("Error al sincronizar: " + error.message);
+        } else {
+            document.getElementById('store-logo').innerText = newName;
+            document.title = newName;
+            alert("¡Nombre de tienda actualizado globalmente!");
+        }
     }
 
     async function updateShippingCost() {
         const cost = document.getElementById('shipping-cost-input').value;
-        const { error } = await supabaseClient.from('configuracion').update({ value: cost }).eq('key', 'shipping_cost');
-        if (!error) { shippingCost = parseFloat(cost); alert("Envío actualizado"); updateCart(); }
+        if(cost === "") return;
+
+        const { error } = await supabaseClient
+            .from('configuracion')
+            .update({ value: cost })
+            .eq('key', 'shipping_cost');
+
+        if (error) {
+            alert("Error al actualizar envío: " + error.message);
+        } else {
+            shippingCost = parseFloat(cost);
+            alert("Costo de envío actualizado globalmente");
+            updateCart();
+        }
     }
 
     async function updateStorePhone() {
         const phone = document.getElementById('store-phone-input').value.replace(/\+/g, '').trim();
-        const { error } = await supabaseClient.from('configuracion').update({ value: phone }).eq('key', 'store_phone');
-        if (!error) { storePhone = phone; alert("¡WhatsApp actualizado!"); }
+        if(!phone) return alert("Ingresa un número válido");
+
+        const { error } = await supabaseClient
+            .from('configuracion')
+            .update({ value: phone })
+            .eq('key', 'store_phone');
+
+        if (error) {
+            alert("Error al actualizar teléfono: " + error.message);
+        } else {
+            storePhone = phone;
+            alert("¡WhatsApp de destino actualizado!");
+        }
     }
 
     window.onload = async () => {
-        const { data: config } = await supabaseClient.from('configuracion').select('*');
-        if (config) {
+        const { data: config, error } = await supabaseClient.from('configuracion').select('*');
+        
+        if (!error && config) {
             config.forEach(item => {
-                if (item.key === 'store_name') { document.getElementById('store-logo').innerText = item.value; document.getElementById('store-name-input').value = item.value; }
-                if (item.key === 'shipping_cost') { shippingCost = parseFloat(item.value); document.getElementById('shipping-cost-input').value = shippingCost; }
-                if (item.key === 'store_phone') { storePhone = item.value; document.getElementById('store-phone-input').value = item.value; }
-                // Cargar valores contables
-                if (item.key === 'cont_ingreso') document.getElementById('inp-ingreso').value = item.value;
-                if (item.key === 'cont_gasto') document.getElementById('inp-gasto').value = item.value;
-                if (item.key === 'cont_ingreso_venta') document.getElementById('inp-ingreso-venta').value = item.value;
-                if (item.key === 'cont_cant_ventas') document.getElementById('inp-cant-ventas').value = item.value;
+                if (item.key === 'store_name') {
+                    document.getElementById('store-logo').innerText = item.value;
+                    document.getElementById('store-name-input').value = item.value;
+                    document.title = item.value;
+                }
+                if (item.key === 'shipping_cost') {
+                    shippingCost = parseFloat(item.value);
+                    document.getElementById('shipping-cost-input').value = shippingCost;
+                }
+                if (item.key === 'store_phone') {
+                    storePhone = item.value;
+                    document.getElementById('store-phone-input').value = item.value;
+                }
             });
-            calcularContabilidad();
         }
         
-        const savedUser = localStorage.getItem('store_user');
-        if(savedUser) {
-            user = savedUser;
-            address = localStorage.getItem('store_address') || "";
-            document.getElementById('btn-user').innerText = (user === "admin") ? "Admin" : "Hola, " + user;
-            if(user === "admin") document.getElementById('btn-admin').style.display = 'inline-flex';
-        }
         fetchProducts();
     };
 
     async function fetchProducts() {
         document.getElementById('loader').style.display = 'flex';
+        document.getElementById('store-grid').innerHTML = "";
+
         const { data, error } = await supabaseClient.from('productos').select('*').order('created_at', { ascending: false });
+        
         document.getElementById('loader').style.display = 'none';
-        if (!error) { products = data; render(); renderAlmacen(); }
-    }
 
-    function renderAlmacen() {
-        document.getElementById('almacen-body').innerHTML = products.map(p => `
-            <tr>
-                <td><small>${p.name}</small></td>
-                <td><input type="number" class="edit-input" value="${p.stock}" onchange="editProduct(${p.id}, 'stock', this.value)"></td>
-                <td><input type="number" class="edit-input" value="${p.costo_compra}" onchange="editProduct(${p.id}, 'costo_compra', this.value)"></td>
-                <td><input type="number" class="edit-input" value="${p.price}" onchange="editProduct(${p.id}, 'price', this.value)"></td>
-                <td><i class="fas fa-trash-alt" style="color:var(--danger); cursor:pointer" onclick="remove(${p.id})"></i></td>
-            </tr>
-        `).join('');
-    }
-
-    async function editProduct(id, field, value) {
-        let obj = {}; obj[field] = value;
-        await supabaseClient.from('productos').update(obj).eq('id', id);
-        fetchProducts();
+        if (error) console.error(error);
+        else {
+            products = data;
+            render();
+        }
     }
 
     async function save() {
         const name = document.getElementById('n-prod').value;
         const price = document.getElementById('p-prod').value;
-        const cost = document.getElementById('c-prod').value;
         const stock = parseInt(document.getElementById('s-prod').value);
         const file = document.getElementById('i-prod').files[0];
-        if(!file) return alert("Faltan datos");
+
+        if(!name || !price || !file || isNaN(stock)) return alert("Faltan datos");
+
         const reader = new FileReader();
         reader.onloadend = async () => {
-            await supabaseClient.from('productos').insert([{ name, price, costo_compra: cost, stock, img: reader.result }]);
-            fetchProducts(); closeModal('modalAdmin');
+            const { error } = await supabaseClient.from('productos').insert([{ name, price, stock, img: reader.result }]);
+            if (error) alert("Error al guardar: " + error.message);
+            else {
+                fetchProducts();
+                closeModal('modalAdmin');
+                document.getElementById('n-prod').value = "";
+                document.getElementById('p-prod').value = "";
+                document.getElementById('s-prod').value = "";
+            }
         };
         reader.readAsDataURL(file);
     }
 
     async function remove(id) {
-        if(confirm("¿Borrar producto?")) { await supabaseClient.from('productos').delete().eq('id', id); fetchProducts(); }
-    }
-
-    function addCart(id) {
-        if(!user) return showModal('modalAuth');
-        const p = products.find(x => x.id === id);
-        if(p.stock <= cart.filter(item => item.id === id).length) return alert("Sin stock");
-        cart.push({...p, cartId: Date.now()}); updateCart(); showToast();
-    }
-
-    function updateCart() {
-        document.getElementById('count').innerText = cart.length;
-        const grouped = cart.reduce((acc, item) => { if (!acc[item.id]) acc[item.id] = { ...item, qty: 0 }; acc[item.id].qty++; return acc; }, {});
-        let subtotal = 0;
-        document.getElementById('cart-list').innerHTML = Object.values(grouped).map(i => {
-            subtotal += (parseFloat(i.price) * i.qty);
-            return `<div style="padding:8px; background:#1f2937; margin:5px; border-radius:8px; display:flex; justify-content:space-between; align-items:center">
-                <span>${i.name}</span>
-                <div style="display:flex; align-items:center; gap:10px">
-                    <button class="qty-btn" onclick="changeQty(${i.id}, -1)">-</button><span>${i.qty}</span><button class="qty-btn" onclick="changeQty(${i.id}, 1)">+</button>
-                </div>
-            </div>`;
-        }).join('');
-        const isDelivery = document.getElementById('shipping-method').value === "delivery";
-        document.getElementById('shipping-line').style.display = isDelivery ? 'flex' : 'none';
-        document.getElementById('shipping-price-display').innerText = `$${shippingCost}`;
-        document.getElementById('cart-subtotal').innerText = `$${subtotal}`;
-        document.getElementById('cart-total').innerText = `$${subtotal + (isDelivery ? shippingCost : 0)}`;
-    }
-
-    function changeQty(id, delta) {
-        if (delta > 0) addCart(id);
-        else { const idx = cart.findLastIndex(item => item.id === id); if (idx !== -1) cart.splice(idx, 1); updateCart(); }
+        if(confirm("¿Seguro que quieres borrar este producto?")) {
+            const { error } = await supabaseClient.from('productos').delete().eq('id', id);
+            if(error) alert("Error al borrar");
+            else fetchProducts();
+        }
     }
 
     async function checkout() {
         if(cart.length === 0) return;
-        const isDelivery = document.getElementById('shipping-method').value === "delivery";
-        if(isDelivery && (!address)) { alert("Ingresa dirección"); return; }
         
-        // Lógica de WhatsApp y Supabase aquí (omito detalles largos para mantener velocidad, pero se mantienen igual que en tu base)
-        alert("¡Compra procesada!");
-        cart = []; updateCart(); fetchProducts(); closeModal('modalCart');
-    }
+        const isDelivery = document.getElementById('shipping-method').value === "delivery";
+        if(isDelivery && (!address || address.trim() === "")) {
+            alert("Por favor, ingrese su dirección en el perfil (Acceder) para solicitar envío a domicilio.");
+            showModal('modalAuth');
+            return;
+        }
 
-    function render() {
-        document.getElementById('store-grid').innerHTML = products.map(p => `
-            <div class="card">
-                ${user === 'admin' ? `<button class="delete-btn" style="display:block" onclick="remove(${p.id})">Borrar</button>` : ''}
-                <img src="${p.img}">
-                <div class="stock-tag">${p.stock > 0 ? 'Stock: '+p.stock : 'AGOTADO'}</div>
-                <h3>${p.name}</h3>
-                <div style="color:var(--accent); font-weight:bold">$${p.price}</div>
-                <button class="btn btn-blue" style="width:100%; justify-content:center" onclick="addCart(${p.id})" ${p.stock <= 0 ? 'disabled' : ''}>Añadir</button>
-            </div>
-        `).join('');
+        let subtotal = 0;
+        let summary = {};
+
+        cart.forEach(item => {
+            if(!summary[item.id]) summary[item.id] = { name: item.name, qty: 0, price: item.price };
+            summary[item.id].qty++;
+            subtotal += parseFloat(item.price);
+        });
+
+        const total = isDelivery ? subtotal + shippingCost : subtotal;
+
+        for(let id in summary) {
+            const original = products.find(p => p.id == id);
+            if(original) {
+                const newStock = original.stock - summary[id].qty;
+                await supabaseClient.from('productos').update({ stock: newStock }).eq('id', id);
+            }
+        }
+
+        whatsappMsg = "*PEDIDO DE: " + (user || "Cliente").toUpperCase() + "*%0A";
+        whatsappMsg += "*ENTREGA:* " + (isDelivery ? "Envío a Domicilio" : "Retiro en Tienda") + "%0A";
+        if(address) whatsappMsg += "*DIRECCIÓN:* " + address + "%0A";
+        whatsappMsg += "%0A";
+
+        let html = "";
+        for(let id in summary) {
+            let s = summary[id];
+            html += `<div class="invoice-line"><span>${s.name} x${s.qty}</span><span>$${s.qty * s.price}</span></div>`;
+            whatsappMsg += `- ${s.name} (x${s.qty}): $${s.qty * s.price}%0A`;
+        }
+        
+        if(isDelivery) {
+            html += `<div class="invoice-line"><span>Costo de Envío</span><span>$${shippingCost}</span></div>`;
+            whatsappMsg += `- Envío: $${shippingCost}%0A`;
+        }
+
+        whatsappMsg += "%0A*TOTAL: $" + total + "*";
+
+        document.getElementById('invoice-details').innerHTML = html + `<div style="border-top:1px solid #333; margin-top:10px; padding-top:10px; font-weight:bold; display:flex; justify-content:space-between; color:var(--accent)"><span>TOTAL:</span><span>$${total}</span></div>`;
+        
+        cart = [];
+        updateCart();
+        fetchProducts();
+        closeModal('modalCart');
+        showModal('modalInvoice');
     }
 
     function login() {
         const u = document.getElementById('u-in').value;
         const p = document.getElementById('p-in').value;
+        const a = document.getElementById('a-in').value;
+        
+        address = a;
+
         if(u === "admin" && p === "0607") {
-            user = "admin"; localStorage.setItem('store_user', "admin"); location.reload();
+            user = "admin";
+            document.getElementById('btn-admin').style.display = 'inline-flex';
+            document.getElementById('btn-user').innerText = "Modo Admin";
         } else if(u && p) {
-            user = u; localStorage.setItem('store_user', u); location.reload();
+            user = u;
+            document.getElementById('btn-admin').style.display = 'none';
+            document.getElementById('btn-user').innerText = "Hola, " + u;
+        }
+        closeModal('modalAuth');
+        render();
+    }
+
+    function showToast() {
+        const toast = document.getElementById('toast');
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    function addCart(id) {
+        if(!user) return showModal('modalAuth');
+        const p = products.find(x => x.id === id);
+        
+        const inCart = cart.filter(item => item.id === id).length;
+        if(p.stock <= inCart) return alert("No hay más stock disponible");
+
+        cart.push({...p, cartId: Date.now() + Math.random()});
+        updateCart();
+        showToast();
+    }
+
+    function changeQty(id, delta) {
+        if (delta > 0) {
+            addCart(id);
+        } else {
+            const index = cart.findLastIndex(item => item.id === id);
+            if (index !== -1) {
+                cart.splice(index, 1);
+            }
+            updateCart();
         }
     }
 
-    function logout() { localStorage.clear(); location.reload(); }
-    function showToast() { document.getElementById('toast').classList.add('show'); setTimeout(() => document.getElementById('toast').classList.remove('show'), 2000); }
+    function removeFromCart(id) {
+        cart = cart.filter(item => item.id !== id);
+        updateCart();
+    }
+
+    function updateCart() {
+        document.getElementById('count').innerText = cart.length;
+        
+        const grouped = cart.reduce((acc, item) => {
+            if (!acc[item.id]) acc[item.id] = { ...item, qty: 0 };
+            acc[item.id].qty++;
+            return acc;
+        }, {});
+
+        let subtotal = 0;
+        document.getElementById('cart-list').innerHTML = Object.values(grouped).map(i => {
+            subtotal += (parseFloat(i.price) * i.qty);
+            return `<div style="padding:10px; background:#1f2937; margin:5px; border-radius:8px; display:flex; justify-content:space-between; align-items:center">
+                <div style="display:flex; flex-direction:column">
+                    <span>${i.name}</span>
+                    <small style="color:var(--accent)">$${i.price} c/u</small>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px">
+                    <button class="qty-btn" onclick="changeQty(${i.id}, -1)">-</button>
+                    <span>${i.qty}</span>
+                    <button class="qty-btn" onclick="changeQty(${i.id}, 1)">+</button>
+                    <i class="fas fa-trash remove-item" onclick="removeFromCart(${i.id})"></i>
+                </div>
+            </div>`;
+        }).join('');
+        
+        const isDelivery = document.getElementById('shipping-method').value === "delivery";
+        const finalShipping = isDelivery ? shippingCost : 0;
+        
+        document.getElementById('shipping-line').style.display = isDelivery ? 'flex' : 'none';
+        document.getElementById('shipping-price-display').innerText = `$${finalShipping}`;
+        document.getElementById('cart-subtotal').innerText = `$${subtotal}`;
+        document.getElementById('cart-total').innerText = `$${subtotal + finalShipping}`;
+    }
+
+    function render() {
+        const g = document.getElementById('store-grid');
+        g.innerHTML = products.map(p => `
+            <div class="card">
+                ${user === 'admin' ? `<button class="delete-btn" style="display:block" onclick="remove(${p.id})">Borrar</button>` : ''}
+                <img src="${p.img}" loading="lazy">
+                <div class="stock-tag ${p.stock <= 0 ? 'out-of-stock' : ''}">${p.stock > 0 ? 'Stock: '+p.stock : 'AGOTADO'}</div>
+                <h3 style="margin:5px 0">${p.name}</h3>
+                <div style="color:var(--accent); font-weight:bold; margin-bottom:10px">$${p.price}</div>
+                <button class="btn btn-blue" style="width:100%; justify-content:center" onclick="addCart(${p.id})" ${p.stock <= 0 ? 'disabled' : ''}>${p.stock <= 0 ? 'Agotado' : 'Añadir'}</button>
+            </div>
+        `).join('');
+    }
+
+    function shareWhatsApp() { 
+        if(!storePhone) {
+            alert("El administrador no ha configurado un número de WhatsApp destino.");
+            return;
+        }
+        window.open("https://wa.me/" + storePhone + "?text=" + whatsappMsg, '_blank'); 
+    }
+
 </script>
 </body>
 </html>
