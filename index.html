@@ -118,6 +118,7 @@
         <input type="password" id="p-in" placeholder="Clave">
         <input type="text" id="a-in" placeholder="Direcci&oacute;n (Obligatoria para envíos)">
         <button class="btn btn-blue" style="width:100%; justify-content: center;" onclick="login()">Entrar</button>
+        <button class="btn btn-danger" style="width:100%; justify-content: center; margin-top:10px; background:transparent; border:1px solid var(--danger); color:var(--danger)" onclick="logout()">Cerrar Sesión</button>
     </div>
 </div>
 
@@ -269,6 +270,23 @@
                 if (item.key === 'store_phone') { storePhone = item.value; document.getElementById('store-phone-input').value = item.value; }
             });
         }
+        
+        // Cargar sesión guardada
+        const savedUser = localStorage.getItem('store_user');
+        const savedAddress = localStorage.getItem('store_address');
+        if(savedUser) {
+            user = savedUser;
+            address = savedAddress || "";
+            document.getElementById('a-in').value = address;
+            if(user === "admin") {
+                document.getElementById('btn-admin').style.display = 'inline-flex';
+                document.getElementById('btn-user').innerText = "Admin";
+                cargarContabilidad();
+            } else {
+                document.getElementById('btn-user').innerText = "Hola, " + user;
+            }
+        }
+
         fetchProducts();
     };
 
@@ -301,9 +319,14 @@
 
     async function resetVentas() {
         if(confirm("¿Seguro que quieres borrar todo el historial de ventas? Esto reiniciará la Caja y Ganancia a $0.")){
-            const { error } = await supabaseClient.from('ventas').delete().neq('id', 0);
-            if (error) alert("Error");
-            else cargarContabilidad();
+            // Corrección del error de reinicio usando un filtro que siempre sea verdadero para borrar todo
+            const { error } = await supabaseClient.from('ventas').delete().neq('id', -1);
+            if (error) {
+                alert("Error al reiniciar: " + error.message);
+            } else {
+                alert("Estado de resultados reiniciado.");
+                cargarContabilidad();
+            }
         }
     }
 
@@ -367,13 +390,29 @@
         const u = document.getElementById('u-in').value;
         const p = document.getElementById('p-in').value;
         address = document.getElementById('a-in').value;
+        
         if(u === "admin" && p === "0607") {
-            user = "admin"; document.getElementById('btn-admin').style.display = 'inline-flex';
-            document.getElementById('btn-user').innerText = "Admin"; cargarContabilidad();
+            user = "admin"; 
+            document.getElementById('btn-admin').style.display = 'inline-flex';
+            document.getElementById('btn-user').innerText = "Admin"; 
+            cargarContabilidad();
         } else if(u && p) {
-            user = u; document.getElementById('btn-user').innerText = "Hola, " + u;
+            user = u; 
+            document.getElementById('btn-user').innerText = "Hola, " + u;
         }
+
+        if(user) {
+            localStorage.setItem('store_user', user);
+            localStorage.setItem('store_address', address);
+        }
+
         closeModal('modalAuth'); render();
+    }
+
+    function logout() {
+        localStorage.removeItem('store_user');
+        localStorage.removeItem('store_address');
+        location.reload();
     }
 
     function showToast() { document.getElementById('toast').classList.add('show'); setTimeout(() => document.getElementById('toast').classList.remove('show'), 2000); }
