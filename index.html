@@ -332,14 +332,26 @@
 
         let subtotal = 0;
         let summary = {};
+        let totalGanancia = 0; // NUEVO: Para el Estado de Resultados
 
         cart.forEach(item => {
-            if(!summary[item.id]) summary[item.id] = { name: item.name, qty: 0, price: item.price };
+            if(!summary[item.id]) summary[item.id] = { name: item.name, qty: 0, price: item.price, cost: item.cost_price || 0 };
             summary[item.id].qty++;
             subtotal += parseFloat(item.price);
+            // Calculamos ganancia: (Venta - Costo)
+            totalGanancia += (parseFloat(item.price) - parseFloat(item.cost_price || 0));
         });
 
         const total = isDelivery ? subtotal + shippingCost : subtotal;
+
+        // --- CONEXIÓN AUTOMÁTICA A CONTABILIDAD ---
+        await supabaseClient.from('contabilidad').insert([{
+            tipo: 'VENTA',
+            detalle: 'Venta Web: ' + (user || "Cliente"),
+            monto: total, // Para el "Efectivo en Caja"
+            ganancia: totalGanancia // Para el "Estado de Resultados"
+        }]);
+        // ------------------------------------------
 
         for(let id in summary) {
             const original = products.find(p => p.id == id);
