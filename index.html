@@ -345,11 +345,13 @@
         const total = isDelivery ? subtotal + shippingCost : subtotal;
 
         // --- CONEXIÓN AUTOMÁTICA A CONTABILIDAD ---
+        // Registramos la venta para que aparezca en el balance y resultados
         await supabaseClient.from('contabilidad').insert([{
             tipo: 'VENTA',
             detalle: 'Venta Web: ' + (user || "Cliente"),
-            monto: total, // Para el "Efectivo en Caja"
-            ganancia: totalGanancia // Para el "Estado de Resultados"
+            monto: total, // Ingresa al efectivo en caja
+            ganancia: totalGanancia, // Se refleja en el Estado de Resultados
+            created_at: new Date().toISOString()
         }]);
         // ------------------------------------------
 
